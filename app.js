@@ -1,38 +1,75 @@
 (function () {
   "use strict";
 
-  // ---------- Penyimpanan progres (localStorage) ----------
+  // =====================================================
+  //  PENYIMPANAN (localStorage, hanya di browser ini)
+  // =====================================================
   const STORE = "vocabLab.stats.v1";
-  const MASTER = 3; // jumlah jawaban benar per keluarga kata sebelum sinonim/antonim dibuka
-  let stats = load();
-  function load() { try { return JSON.parse(localStorage.getItem(STORE)) || {}; } catch (e) { return {}; } }
-  function save() { try { localStorage.setItem(STORE, JSON.stringify(stats)); } catch (e) {} }
+  const CUSTOM = "vocabLab.custom.v1";
+  const MASTER = 3; // jawaban benar per kata sebelum dianggap dikuasai
 
-  // ---------- Utilitas ----------
+  const ls = {
+    get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } }
+  };
+  let stats = ls.get(STORE, {});
+  let custom = ls.get(CUSTOM, []);
+  if (!stats || typeof stats !== "object") stats = {};
+  if (!Array.isArray(custom)) custom = [];
+  const saveStats = () => ls.set(STORE, stats);
+  const saveCustom = () => ls.set(CUSTOM, custom);
+
+  // =====================================================
+  //  UTILITAS
+  // =====================================================
+  const POS = ["noun", "verb", "adjective", "adverb"];
   const POS_ID = { noun: "kata benda", verb: "kata kerja", adjective: "kata sifat", adverb: "kata keterangan" };
   const rand = a => a[Math.floor(Math.random() * a.length)];
   function shuffle(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
-  const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const $ = id => document.getElementById(id);
 
-  const ALL_FORMS = FAMILIES.flatMap(f => f.forms.map(x => ({ ...x, fam: f.id })));
+  const fams = () => FAMILIES.concat(custom);
+  const allForms = () => fams().flatMap(f => f.forms.map(x => ({ ...x, fam: f.id })));
+  const focusOf = f => f.focus || f.forms[0].w;
+  const focusArti = f => (f.forms.find(x => x.w === focusOf(f)) || f.forms[0]).arti;
+  const syns = f => f.synonyms || [];
+  const ants = f => f.antonyms || [];
+  const hasParts = f => !!(f.parts && f.parts.list && f.parts.list.length && f.forms.some(x => x.w === f.parts.w));
+  const hasSentence = f => !!(f.sentence && f.sentence.text && f.sentence.text.includes("___") && f.forms.some(x => x.w === f.sentence.answer));
+  const posPill = p => `<span class="pos pos-${p}">${p}</span>`;
+
   const SUFFIX_HINTS = AFFIXES.suffix
     .flatMap(s => s.form.split("/").map(t => ({ end: t.trim().replace(/^-/, ""), pos: s.pos })))
     .sort((a, b) => b.end.length - a.end.length);
-
   function suffixHint(w, pos) {
     const h = SUFFIX_HINTS.find(h => w.endsWith(h.end));
     return h && h.pos === pos ? `akhiran <b>-${esc(h.end)}</b> biasanya membentuk ${h.pos}` : "";
   }
+  function affixFor(part) {
+    const p = String(part).trim().toLowerCase();
+    for (const kind of ["prefix", "root", "suffix"]) {
+      for (const item of AFFIXES[kind]) {
+        if (item.form.split("/").map(t => t.trim().toLowerCase()).includes(p)) return { kind, item };
+      }
+    }
+    return null;
+  }
   function famCorrect(id) { let c = 0; for (const k in stats) if (stats[k].fam === id) c += stats[k].c; return c; }
   const isMastered = f => famCorrect(f.id) >= MASTER;
-  const focusArti = f => (f.forms.find(x => x.w === f.focus) || {}).arti || "";
+  const boxes = f => {
+    const c = Math.min(famCorrect(f.id), MASTER);
+    return `<span class="boxes" title="${c}/${MASTER} benar">${Array.from({ length: MASTER }, (_, i) => `<i class="${i < c ? "on" : ""}"></i>`).join("")}</span>`;
+  };
 
-  // ---------- Pembuat soal ----------
+  // =====================================================
+  //  PEMBUAT SOAL
+  // =====================================================
   function qPos(form) {
-    const others = ALL_FORMS.filter(f => f.pos !== form.pos);
+    const others = allForms().filter(f => f.pos !== form.pos);
     const pool = shuffle(others.filter(f => f.fam === form.fam)).concat(shuffle(others.filter(f => f.fam !== form.fam)));
     const picks = [];
-    for (const f of pool) { if (picks.length >= 3) break; if (!picks.some(p => p.w === f.w)) picks.push(f); }
+    for (const f of pool) { if (picks.length >= 3) break; if (!picks.some(p => p.w === f.w) && f.w !== form.w) picks.push(f); }
     const opts = shuffle([form, ...picks]);
     const hint = suffixHint(form.w, form.pos);
     const art = /^[aeiou]/.test(form.pos) ? "an" : "a";
@@ -51,10 +88,10 @@
     const ans = fam.forms.find(f => f.w === s.answer);
     return {
       tag: "Isi kalimat",
-      prompt: esc(s.text).replace("___", '<span class="blank">_____</span>'),
+      prompt: esc(s.text).replace("___", '<span class="blank">______</span>'),
       sub: "Pilih bentuk kata yang tepat.",
       options: shuffle(fam.forms).map(f => ({ label: f.w, correct: f.w === s.answer })),
-      explain: `${esc(s.why)} Jawaban: <b>${esc(ans.w)}</b> (${ans.pos}, ${esc(ans.arti)}).` +
+      explain: `${s.why ? esc(s.why) + " " : ""}Jawaban: <b>${esc(ans.w)}</b> (${ans.pos}, ${esc(ans.arti)}).` +
         `<ul>${fam.forms.filter(f => f.w !== ans.w).map(f => `<li>${esc(f.w)} = ${f.pos}</li>`).join("")}</ul>`
     };
   }
@@ -67,13 +104,15 @@
         tag: "Imbuhan",
         prompt: `Akhiran <b>${esc(item.form)}</b> biasanya membentuk kata jenis apa?`,
         sub: name,
-        options: shuffle(["noun", "verb", "adjective", "adverb"]).map(p => ({ label: p, correct: p === item.pos })),
+        options: shuffle(POS).map(p => ({ label: p, correct: p === item.pos })),
         explain: `<b>${esc(item.form)}</b> → ${item.pos} (${POS_ID[item.pos]}), artinya kira-kira "${esc(item.meaning)}". ${exLine}`
       };
     }
-    const others = shuffle(AFFIXES[kind].filter(a => a.meaning !== item.meaning));
     const picks = [];
-    for (const o of others) { if (picks.length >= 3) break; if (!picks.includes(o.meaning)) picks.push(o.meaning); }
+    for (const o of shuffle(AFFIXES[kind].filter(a => a.meaning !== item.meaning))) {
+      if (picks.length >= 3) break;
+      if (!picks.includes(o.meaning)) picks.push(o.meaning);
+    }
     return {
       tag: "Imbuhan",
       prompt: `Apa arti <b>${esc(item.form)}</b>?`,
@@ -87,155 +126,606 @@
     const p = fam.parts;
     const form = fam.forms.find(f => f.w === p.w);
     const picks = [];
-    for (const o of shuffle(ALL_FORMS.filter(f => f.fam !== fam.id))) {
+    for (const o of shuffle(allForms().filter(f => f.fam !== fam.id))) {
       if (picks.length >= 3) break;
       if (o.arti !== form.arti && !picks.includes(o.arti)) picks.push(o.arti);
     }
     return {
       tag: "Pecah kata",
-      prompt: `<span class="chips">${p.list.map(x => `<span class="chip">${esc(x[0])}</span>`).join('<span class="plus">+</span>')}</span>`,
-      sub: `Dari bagian-bagiannya, apa arti <b>${esc(p.w)}</b>?`,
+      prompt: `<span class="chips">${p.list.map(x => `<span class="chip"><b>${esc(x[0])}</b></span>`).join('<span class="plus">+</span>')}</span>`,
+      sub: `Dari potongan-potongannya, apa arti <b>${esc(p.w)}</b>?`,
       options: shuffle([form.arti, ...picks]).map(a => ({ label: a, correct: a === form.arti })),
-      explain: `<ul>${p.list.map(x => `<li><b>${esc(x[0])}</b> = ${esc(x[1])}</li>`).join("")}</ul>` +
+      explain: `<ul>${p.list.map(x => `<li><b>${esc(x[0])}</b> = ${esc(x[1] || "—")}</li>`).join("")}</ul>` +
         `Jadi <b>${esc(p.w)}</b> (${form.pos}) = ${esc(form.arti)}.`
     };
   }
 
   function qRel(fam, kind) {
-    const list = kind === "syn" ? fam.synonyms : fam.antonyms;
+    const list = kind === "syn" ? syns(fam) : ants(fam);
     const ans = rand(list);
-    const exclude = new Set([...fam.synonyms, ...fam.antonyms].map(x => x.w).concat(fam.forms.map(f => f.w)));
-    const pool = shuffle(FAMILIES.filter(f => f.id !== fam.id && !exclude.has(f.focus)));
-    const picks = pool.slice(0, 3).map(f => ({ w: f.focus, arti: focusArti(f) }));
+    const exclude = new Set([...syns(fam), ...ants(fam)].map(x => x.w.toLowerCase()).concat(fam.forms.map(f => f.w.toLowerCase())));
+    const picks = [];
+    for (const f of shuffle(fams())) {
+      if (picks.length >= 3) break;
+      const w = focusOf(f);
+      if (f.id === fam.id || exclude.has(w.toLowerCase()) || picks.some(p => p.w === w)) continue;
+      picks.push({ w, arti: focusArti(f) });
+    }
     const label = kind === "syn" ? "Sinonim" : "Antonim";
+    const fw = focusOf(fam);
     return {
       tag: label,
-      prompt: `${label} dari <b>${esc(fam.focus)}</b>?`,
-      sub: `${esc(fam.focus)} = ${esc(focusArti(fam))}. Pilih kata yang artinya ${kind === "syn" ? "paling mirip" : "berlawanan"}.`,
+      prompt: `${label} dari <b>${esc(fw)}</b>?`,
+      sub: `${esc(fw)} = ${esc(focusArti(fam))}. Pilih kata yang artinya ${kind === "syn" ? "paling mirip" : "berlawanan"}.`,
       options: shuffle([ans, ...picks]).map(o => ({ label: o.w, correct: o.w === ans.w })),
-      explain: `<b>${esc(fam.focus)}</b> (${esc(focusArti(fam))}) ${kind === "syn" ? "≈" : "↔"} <b>${esc(ans.w)}</b> (${esc(ans.arti)}).` +
+      explain: `<b>${esc(fw)}</b> (${esc(focusArti(fam))}) ${kind === "syn" ? "≈" : "↔"} <b>${esc(ans.w)}</b>${ans.arti ? ` (${esc(ans.arti)})` : ""}.` +
         `<ul>${picks.map(o => `<li>${esc(o.w)} = ${esc(o.arti)}</li>`).join("")}</ul>`
     };
   }
 
-  // ---------- Daftar kandidat soal per mode ----------
+  const C = {
+    pos: f => ({ key: "pos:" + f.w, fam: f.fam, make: () => qPos(f) }),
+    fill: f => ({ key: "fill:" + f.id, fam: f.id, make: () => qFill(f) }),
+    affix: (k, a) => ({ key: "affix:" + a.form, fam: null, make: () => qAffix(k, a) }),
+    parts: f => ({ key: "parts:" + f.id, fam: f.id, make: () => qParts(f) }),
+    rel: (f, kind) => ({ key: kind + ":" + f.id, fam: f.id, make: () => qRel(f, kind) })
+  };
+
   function candidates(mode) {
-    const c = [];
-    const want = m => mode === "mix" || mode === m;
-    if (want("pos")) ALL_FORMS.forEach(f => c.push({ key: "pos:" + f.w, fam: f.fam, make: () => qPos(f) }));
-    if (want("fill")) FAMILIES.forEach(f => f.sentence && c.push({ key: "fill:" + f.id, fam: f.id, make: () => qFill(f) }));
-    if (want("affix")) ["prefix", "root", "suffix"].forEach(k => AFFIXES[k].forEach(a => c.push({ key: "affix:" + a.form, fam: null, make: () => qAffix(k, a) })));
-    if (want("parts")) FAMILIES.forEach(f => f.parts && c.push({ key: "parts:" + f.id, fam: f.id, make: () => qParts(f) }));
-    if (want("rel")) FAMILIES.forEach(f => {
-      if (mode === "mix" && !isMastered(f)) return; // di mode campur, sinonim/antonim baru keluar setelah kata dikuasai
-      if (f.synonyms.length) c.push({ key: "syn:" + f.id, fam: f.id, make: () => qRel(f, "syn") });
-      if (f.antonyms.length) c.push({ key: "ant:" + f.id, fam: f.id, make: () => qRel(f, "ant") });
+    const c = [], want = m => mode === "mix" || mode === m;
+    if (want("pos")) allForms().forEach(f => c.push(C.pos(f)));
+    if (want("fill")) fams().filter(hasSentence).forEach(f => c.push(C.fill(f)));
+    if (want("affix")) ["prefix", "root", "suffix"].forEach(k => AFFIXES[k].forEach(a => c.push(C.affix(k, a))));
+    if (want("parts")) fams().filter(hasParts).forEach(f => c.push(C.parts(f)));
+    if (want("rel")) fams().forEach(f => {
+      if (mode === "mix" && !isMastered(f)) return;
+      if (syns(f).length) c.push(C.rel(f, "syn"));
+      if (ants(f).length) c.push(C.rel(f, "ant"));
     });
     return c;
   }
-
-  // Soal yang sering salah muncul lebih sering
   function weight(key) {
     const s = stats[key];
     if (!s) return 1.5;
     return Math.max(0.2, 1 + 2 * s.w - 0.25 * Math.min(s.c, 4));
   }
-  function pick(list) {
-    if (list.length > 1) list = list.filter(x => x.key !== lastKey);
-    const total = list.reduce((t, x) => t + weight(x.key), 0);
-    let r = Math.random() * total;
+  function pickWeighted(list, avoid) {
+    if (list.length > 1) list = list.filter(x => x.key !== avoid);
+    let r = Math.random() * list.reduce((t, x) => t + weight(x.key), 0);
     for (const x of list) { r -= weight(x.key); if (r <= 0) return x; }
     return list[list.length - 1];
   }
+  function record(cand, ok) {
+    const s = stats[cand.key] || { c: 0, w: 0, fam: cand.fam };
+    ok ? s.c++ : s.w++;
+    s.fam = cand.fam;
+    stats[cand.key] = s;
+    saveStats();
+  }
 
-  // ---------- Tampilan ----------
-  const $ = id => document.getElementById(id);
-  let mode = "mix", lastKey = null, current = null, answered = false;
-  let session = { right: 0, total: 0 };
-
-  function next() {
-    const cand = pick(candidates(mode));
-    lastKey = cand.key;
-    current = { ...cand, q: cand.make() };
-    answered = false;
-    const q = current.q;
-    $("tag").textContent = q.tag;
-    $("prompt").innerHTML = q.prompt;
-    $("sub").innerHTML = q.sub;
-    $("feedback").hidden = true;
-    $("nextBtn").hidden = true;
-    const box = $("options");
-    box.innerHTML = "";
+  // =====================================================
+  //  KOMPONEN SOAL
+  // =====================================================
+  let activeQuiz = null;
+  function mountQuiz(host, cand, opt) {
+    const q = cand.make();
+    host.innerHTML =
+      `<div class="group qcard">
+         <div class="qhead"><span class="qtag">${esc(q.tag)}</span>${opt.meta ? `<span class="qmeta">${esc(opt.meta)}</span>` : ""}</div>
+         <div class="qprompt">${q.prompt}</div>
+         <div class="qsub">${q.sub}</div>
+       </div>
+       <div class="options"></div>
+       <div class="feedback" hidden></div>
+       <div class="actions"><span class="keys">1–4 jawab · Enter lanjut</span><button type="button" class="btn primary next" hidden>${esc(opt.nextLabel || "Soal berikutnya")}</button></div>`;
+    const box = host.querySelector(".options"), fb = host.querySelector(".feedback"), nx = host.querySelector(".next");
+    let answered = false;
     q.options.forEach((o, i) => {
       const b = document.createElement("button");
+      b.type = "button";
       b.className = "opt";
       b.innerHTML = `<span class="num">${i + 1}</span><span>${esc(o.label)}</span>`;
       b.onclick = () => answer(i);
       box.appendChild(b);
     });
-    $("relNote").hidden = mode !== "rel" || FAMILIES.every(isMastered);
+    function answer(i) {
+      if (answered) return;
+      answered = true;
+      const ok = q.options[i].correct;
+      record(cand, ok);
+      [...box.children].forEach((b, j) => {
+        b.disabled = true;
+        if (q.options[j].correct) b.classList.add("correct");
+        else if (j === i) b.classList.add("wrong");
+      });
+      fb.className = "feedback " + (ok ? "ok" : "no");
+      fb.innerHTML = `<div class="verdict">${ok ? "Benar" : "Belum tepat"}</div>${q.explain}`;
+      fb.hidden = false;
+      nx.hidden = false;
+      nx.focus({ preventScroll: true });
+      if (opt.onAnswer) opt.onAnswer(ok);
+      updateBadge();
+    }
+    nx.onclick = () => { activeQuiz = null; opt.onNext(); };
+    activeQuiz = { answer, next: () => nx.click(), isAnswered: () => answered, count: q.options.length };
   }
-
-  function answer(i) {
-    if (answered) return;
-    answered = true;
-    const q = current.q;
-    const ok = q.options[i].correct;
-    const s = stats[current.key] || { c: 0, w: 0, fam: current.fam };
-    ok ? s.c++ : s.w++;
-    stats[current.key] = s;
-    save();
-    session.total++; if (ok) session.right++;
-    [...$("options").children].forEach((b, j) => {
-      b.disabled = true;
-      if (q.options[j].correct) b.classList.add("correct");
-      else if (j === i) b.classList.add("wrong");
-    });
-    const fb = $("feedback");
-    fb.className = "feedback " + (ok ? "ok" : "no");
-    fb.innerHTML = `<div class="verdict">${ok ? "Benar!" : "Belum tepat"}</div>${q.explain}`;
-    fb.hidden = false;
-    $("nextBtn").hidden = false;
-    $("nextBtn").focus();
-    renderStats();
-  }
-
-  function renderStats() {
-    const N = FAMILIES.length;
-    const mastered = FAMILIES.filter(isMastered).length;
-    const pts = FAMILIES.reduce((t, f) => t + Math.min(famCorrect(f.id), MASTER), 0);
-    const pct = Math.round(100 * pts / (N * MASTER));
-    const SEG = 25, filled = Math.round(SEG * pts / (N * MASTER));
-    $("score").textContent = `Sesi ini: ${session.right}/${session.total} benar`;
-    $("mastery").textContent = `Dikuasai: ${mastered}/${N} kata`;
-    $("bar").innerHTML = Array.from({ length: SEG }, (_, i) => `<span class="seg${i < filled ? " on" : ""}"></span>`).join("");
-    $("barLabel").textContent = pct + "%";
-    $("famList").innerHTML = FAMILIES.map(f => {
-      const c = Math.min(famCorrect(f.id), MASTER);
-      const boxes = Array.from({ length: MASTER }, (_, i) => `<i class="${i < c ? "on" : ""}"></i>`).join("");
-      return `<li class="${c >= MASTER ? "done" : ""}"><span>${esc(f.id)}</span><span class="boxes">${boxes}</span></li>`;
-    }).join("");
-  }
-
-  document.querySelectorAll(".mode").forEach(b => b.onclick = () => {
-    document.querySelectorAll(".mode").forEach(x => x.classList.toggle("active", x === b));
-    mode = b.dataset.mode;
-    lastKey = null;
-    next();
-  });
-  $("nextBtn").onclick = next;
-  $("resetBtn").onclick = () => {
-    if (!confirm("Hapus semua progres?")) return;
-    stats = {}; save(); session = { right: 0, total: 0 }; renderStats(); next();
-  };
-  // Keyboard: angka 1–4 untuk menjawab, Enter untuk soal berikutnya
   document.addEventListener("keydown", e => {
-    if (!answered && /^[1-4]$/.test(e.key)) {
+    if (!activeQuiz) return;
+    if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+    if (!activeQuiz.isAnswered() && /^[1-4]$/.test(e.key)) {
       const i = +e.key - 1;
-      if (current && i < current.q.options.length) answer(i);
-    } else if (answered && e.key === "Enter") { e.preventDefault(); next(); }
+      if (i < activeQuiz.count) activeQuiz.answer(i);
+    } else if (activeQuiz.isAnswered() && e.key === "Enter") {
+      e.preventDefault();
+      activeQuiz.next();
+    }
   });
 
-  renderStats();
-  next();
+  // =====================================================
+  //  RONDE TERPANDU
+  // =====================================================
+  const STEPS = [
+    { id: "intro", title: "Kenalan", desc: "Baca keluarga kata: semua bentuknya, jenis katanya, arti, dan potongan katanya. Belum ada soal." },
+    { id: "affix", title: "Imbuhan", desc: "Tebak arti prefix, root, dan suffix yang dipakai kata-kata ini." },
+    { id: "parts", title: "Pecah kata", desc: "Dari potongan-potongannya, tebak arti kata utuhnya." },
+    { id: "pos", title: "Jenis kata", desc: "Bedakan noun, verb, adjective, dan adverb dari bentuknya." },
+    { id: "fill", title: "Isi kalimat", desc: "Pilih bentuk kata yang pas di dalam kalimat." },
+    { id: "rel", title: "Sinonim & antonim", desc: "Ulangi kata yang sudah dikuasai lewat padanan dan lawan kata. Dilewati kalau belum ada." }
+  ];
+  let roundSize = 3, round = null;
+
+  function pickWords(n) {
+    const pool = fams().slice(), out = [];
+    while (out.length < n && pool.length) {
+      const w = pool.map(f => isMastered(f) ? 0.25 : 1.6 - 0.35 * Math.min(famCorrect(f.id), MASTER));
+      let r = Math.random() * w.reduce((a, b) => a + b, 0), i = 0;
+      for (; i < pool.length - 1; i++) { r -= w[i]; if (r <= 0) break; }
+      out.push(pool[i]);
+      pool.splice(i, 1);
+    }
+    return out;
+  }
+
+  function buildRound(n) {
+    const words = pickWords(n);
+    const items = { intro: [{ intro: true }], affix: [], parts: [], pos: [], fill: [], rel: [] };
+
+    const seen = new Set();
+    words.filter(hasParts).forEach(f => f.parts.list.forEach(([p]) => {
+      const m = affixFor(p);
+      if (m && !seen.has(m.item.form)) { seen.add(m.item.form); items.affix.push(C.affix(m.kind, m.item)); }
+    }));
+    items.affix = shuffle(items.affix).slice(0, 4);
+    if (items.affix.length < 2) {
+      const extra = shuffle(["prefix", "root", "suffix"].flatMap(k => AFFIXES[k].map(item => ({ kind: k, item })))).filter(x => !seen.has(x.item.form));
+      while (items.affix.length < 2 && extra.length) { const x = extra.pop(); items.affix.push(C.affix(x.kind, x.item)); }
+    }
+
+    items.parts = words.filter(hasParts).map(C.parts);
+    items.pos = words.map(f => C.pos({ ...rand(f.forms), fam: f.id }));
+    items.fill = words.filter(hasSentence).map(C.fill);
+
+    const mastered = shuffle(fams().filter(f => isMastered(f) && (syns(f).length || ants(f).length)));
+    mastered.sort((a, b) => (words.includes(b) ? 1 : 0) - (words.includes(a) ? 1 : 0));
+    items.rel = mastered.slice(0, n).map(f => {
+      const kinds = [];
+      if (syns(f).length) kinds.push("syn");
+      if (ants(f).length) kinds.push("ant");
+      return C.rel(f, rand(kinds));
+    });
+
+    return { words, steps: STEPS.map(s => ({ ...s, items: items[s.id], right: 0, done: 0 })), si: 0, qi: 0, phase: "run", answered: false };
+  }
+
+  function skipEmpty() {
+    while (round.si < round.steps.length && round.steps[round.si].items.length === 0) round.si++;
+    if (round.si >= round.steps.length) round.phase = "summary";
+  }
+  function startRound() { round = buildRound(roundSize); skipEmpty(); renderRound(); window.scrollTo(0, 0); }
+  function advance() {
+    round.answered = false;
+    round.qi++;
+    if (round.qi >= round.steps[round.si].items.length) { round.si++; round.qi = 0; skipEmpty(); window.scrollTo(0, 0); }
+    renderRound();
+  }
+  function nextLabel() {
+    const step = round.steps[round.si];
+    if (round.qi < step.items.length - 1) return "Soal berikutnya";
+    const later = round.steps.slice(round.si + 1).find(s => s.items.length);
+    return later ? `Lanjut: ${later.title}` : "Lihat hasil";
+  }
+
+  function stepperHTML() {
+    return `<div class="stepper">${round.steps.map((s, i) => {
+      let cls = "";
+      if (round.phase === "summary") cls = s.items.length ? "done" : "skip";
+      else if (i === round.si) cls = "current";
+      else if (i < round.si) cls = s.items.length ? "done" : "skip";
+      return `<div class="step ${cls}"><span class="n">${cls === "done" ? "✓" : i + 1}</span><span class="t">${esc(s.title)}</span></div>`;
+    }).join("")}</div>`;
+  }
+
+  function renderRound() {
+    const host = $("view-round");
+    if (!round) return renderStart(host);
+    if (round.answered) return advance(); // pindah tab setelah menjawab → lanjut otomatis
+    host.innerHTML = stepperHTML() + `<div id="roundStage"></div>`;
+    const stage = $("roundStage");
+    if (round.phase === "summary") return renderSummary(stage);
+    const step = round.steps[round.si];
+    stage.innerHTML = `<div class="steptitle"><div><b>Langkah ${round.si + 1} · ${esc(step.title)}</b><span>${esc(step.desc)}</span></div><button type="button" class="btn small ghost" id="quitRound">Akhiri</button></div><div id="roundBody"></div>`;
+    $("quitRound").onclick = () => { if (confirm("Akhiri ronde ini? Jawaban yang sudah masuk tetap tercatat.")) { round = null; activeQuiz = null; renderRound(); } };
+    const body = $("roundBody");
+    if (step.id === "intro") return renderIntro(body);
+    mountQuiz(body, step.items[round.qi], {
+      meta: `Soal ${round.qi + 1} dari ${step.items.length}`,
+      nextLabel: nextLabel(),
+      onAnswer: ok => { step.done++; if (ok) step.right++; round.answered = true; },
+      onNext: advance
+    });
+  }
+
+  function renderStart(host) {
+    host.innerHTML = `
+      <h2 class="vtitle">Ronde terpandu</h2>
+      <p class="vsub">Satu ronde melatih beberapa kata lewat 6 langkah berurutan, dari mengenali bentuknya sampai memakainya di kalimat.</p>
+      <div class="glabel">Urutan langkah</div>
+      <div class="group">${STEPS.map((s, i) => `<div class="row"><span class="stepno">${i + 1}</span><div><div class="rt">${esc(s.title)}</div><div class="rd">${esc(s.desc)}</div></div></div>`).join("")}</div>
+      <div class="glabel">Pengaturan</div>
+      <div class="group"><div class="row between wrap">
+        <div><div class="rt">Jumlah kata per ronde</div><div class="rd">Kata yang belum dikuasai lebih sering terpilih.</div></div>
+        <div class="seg" id="sizeSeg">${[3, 4, 5].map(n => `<button type="button" data-n="${n}" class="${n === roundSize ? "active" : ""}">${n} kata</button>`).join("")}</div>
+      </div></div>
+      <div class="actions"><button type="button" class="btn primary big" id="startBtn">Mulai ronde</button></div>`;
+    host.querySelectorAll("#sizeSeg button").forEach(b => b.onclick = () => { roundSize = +b.dataset.n; renderStart(host); });
+    $("startBtn").onclick = startRound;
+  }
+
+  function wordCard(f) {
+    return `<div class="group wcard">
+      <div class="whead"><span class="wword">${esc(focusOf(f))}</span><span class="wmeta">${esc(focusArti(f))}</span>${f.custom ? '<span class="tagmine">kata saya</span>' : ""}</div>
+      <div class="ftable">${f.forms.map(x => `<div class="frow2"><span class="fw">${esc(x.w)}</span>${posPill(x.pos)}<span class="fa">${esc(x.arti)}</span></div>`).join("")}</div>
+      ${hasParts(f) ? `<div class="wparts"><span class="plabel">${esc(f.parts.w)}</span><span class="chips">${f.parts.list.map(p => `<span class="chip"><b>${esc(p[0])}</b><small>${esc(p[1] || "")}</small></span>`).join('<span class="plus">+</span>')}</span></div>` : ""}
+    </div>`;
+  }
+  function renderIntro(body) {
+    body.innerHTML = round.words.map(wordCard).join("") +
+      `<div class="actions"><span class="keys">Perhatikan akhiran tiap bentuk dan jenis katanya.</span><button type="button" class="btn primary" id="introNext">Sudah dibaca, lanjut</button></div>`;
+    $("introNext").onclick = advance;
+  }
+
+  function renderSummary(stage) {
+    const sc = round.steps.filter(s => s.id !== "intro");
+    const right = sc.reduce((t, s) => t + s.right, 0), total = sc.reduce((t, s) => t + s.done, 0);
+    stage.innerHTML = `
+      <div class="group sumhead"><div class="sumbig">${right}<small>/${total}</small></div><div><div class="rt">Ronde selesai</div><div class="rd">${total ? Math.round(100 * right / total) : 0}% jawaban benar</div></div></div>
+      <div class="glabel">Per langkah</div>
+      <div class="group">${sc.map(s => `<div class="row between"><span>${esc(s.title)}</span><span class="${s.items.length ? "num-r" : "muted"}">${s.items.length ? `${s.right}/${s.done}` : (s.id === "rel" ? "dilewati, belum ada kata yang dikuasai" : "dilewati")}</span></div>`).join("")}</div>
+      <div class="glabel">Kata di ronde ini</div>
+      <div class="group">${round.words.map(f => `<div class="row between"><span class="fw">${esc(focusOf(f))}</span>${boxes(f)}</div>`).join("")}</div>
+      <div class="actions"><button type="button" class="btn" id="sumBack">Selesai</button><button type="button" class="btn primary" id="sumAgain">Ronde baru</button></div>`;
+    $("sumBack").onclick = () => { round = null; renderRound(); };
+    $("sumAgain").onclick = startRound;
+  }
+
+  // =====================================================
+  //  LATIHAN BEBAS
+  // =====================================================
+  const MODES = [["mix", "Campur"], ["pos", "Jenis kata"], ["fill", "Isi kalimat"], ["affix", "Imbuhan"], ["parts", "Pecah kata"], ["rel", "Sinonim/Antonim"]];
+  let freeMode = "mix", freeLast = null, freeScore = { r: 0, t: 0 };
+
+  function renderFree() {
+    const host = $("view-free");
+    host.innerHTML = `
+      <h2 class="vtitle">Latihan bebas</h2>
+      <p class="vsub">Soal acak tanpa urutan. Cocok untuk pemanasan atau mengulang satu jenis soal saja.</p>
+      <div class="toolbar"><div class="seg" id="modeSeg">${MODES.map(([m, l]) => `<button type="button" data-m="${m}" class="${m === freeMode ? "active" : ""}">${l}</button>`).join("")}</div><span class="muted" id="freeScore">Benar ${freeScore.r}/${freeScore.t}</span></div>
+      ${freeMode === "rel" ? `<div class="note">Saran: kuasai dulu katanya. Di Campur dan Ronde, sinonim/antonim baru muncul setelah sebuah kata dijawab benar 3 kali, supaya tidak tertukar.</div>` : ""}
+      <div id="freeStage"></div>`;
+    host.querySelectorAll("#modeSeg button").forEach(b => b.onclick = () => { freeMode = b.dataset.m; freeLast = null; renderFree(); });
+    nextFree();
+  }
+  function nextFree() {
+    const list = candidates(freeMode);
+    if (!list.length) { $("freeStage").innerHTML = `<div class="group pad muted">Belum ada soal untuk jenis ini.</div>`; return; }
+    const cand = pickWeighted(list, freeLast);
+    freeLast = cand.key;
+    mountQuiz($("freeStage"), cand, {
+      onAnswer: ok => { freeScore.t++; if (ok) freeScore.r++; $("freeScore").textContent = `Benar ${freeScore.r}/${freeScore.t}`; },
+      onNext: nextFree
+    });
+  }
+
+  // =====================================================
+  //  KATA SAYA (tambah kata langsung dari web)
+  // =====================================================
+  let editingId = null, wordsMsg = null;
+
+  function renderWords() {
+    const host = $("view-words");
+    host.innerHTML = `
+      <h2 class="vtitle">Kata saya</h2>
+      <p class="vsub">Tambahkan kata dari bacaanmu. Kata langsung ikut di ronde terpandu dan latihan bebas.</p>
+      <div class="glabel">${editingId ? "Edit kata" : "Tambah kata baru"}</div>
+      <form class="group form" id="wordForm" novalidate>
+        <div class="fsec">
+          <div class="fhead"><b>1. Bentuk kata</b><span>Wajib, minimal 2 bentuk. Baris pertama jadi kata utama.</span></div>
+          <div class="frow fhdr"><span>Kata</span><span>Jenis</span><span>Arti</span><span></span></div>
+          <div id="formsBox"></div>
+          <button type="button" class="btn small" id="addForm">+ Tambah bentuk</button>
+        </div>
+        <div class="fsec">
+          <div class="fhead"><b>2. Pecah kata</b><span>Opsional. Pilih satu bentuk, lalu isi potongan dan artinya.</span></div>
+          <label class="fl">Kata yang dipecah<select id="partsWord"></select></label>
+          <div class="prow fhdr"><span>Potongan</span><span>Arti potongan</span><span></span></div>
+          <div id="partsBox"></div>
+          <button type="button" class="btn small" id="addPart">+ Tambah potongan</button>
+        </div>
+        <div class="fsec">
+          <div class="fhead"><b>3. Kalimat rumpang</b><span>Opsional. Tulis ___ (tiga garis bawah) di tempat kosong.</span></div>
+          <label class="fl">Kalimat<textarea id="sText" rows="2" placeholder="The ___ advertisement made the product look better than it was."></textarea></label>
+          <div class="grid2"><label class="fl">Jawaban<select id="sAns"></select></label><label class="fl">Alasan (opsional)<input id="sWhy" placeholder="Sebelum noun butuh adjective."></label></div>
+        </div>
+        <div class="fsec">
+          <div class="fhead"><b>4. Sinonim & antonim</b><span>Opsional. Padanan dan lawan dari kata utama.</span></div>
+          <div class="grid2"><label class="fl">Sinonim<input id="synW" placeholder="misleading" autocapitalize="off" spellcheck="false"></label><label class="fl">Arti sinonim<input id="synA" placeholder="menyesatkan"></label></div>
+          <div class="grid2"><label class="fl">Antonim<input id="antW" placeholder="honest" autocapitalize="off" spellcheck="false"></label><label class="fl">Arti antonim<input id="antA" placeholder="jujur"></label></div>
+        </div>
+        <div class="fsec factions">
+          <span id="formMsg" class="fmsg"></span>
+          ${editingId ? '<button type="button" class="btn" id="cancelEdit">Batal</button>' : ""}
+          <button type="submit" class="btn primary">${editingId ? "Simpan perubahan" : "Simpan kata"}</button>
+        </div>
+      </form>
+
+      <div class="glabel">Daftar kata saya (${custom.length})</div>
+      <div class="group">${custom.length ? custom.map(f => `
+        <div class="row between">
+          <div class="minw"><span class="fw">${esc(focusOf(f))}</span> <span class="muted">· ${f.forms.length} bentuk · ${esc(focusArti(f))}</span></div>
+          <div class="btns"><button type="button" class="btn small" data-edit="${esc(f.id)}">Edit</button><button type="button" class="btn small danger" data-del="${esc(f.id)}">Hapus</button></div>
+        </div>`).join("") : `<div class="row muted">Belum ada. Kata yang kamu simpan akan muncul di sini.</div>`}</div>
+
+      <div class="glabel">Cadangan & pindah perangkat</div>
+      <div class="group"><div class="row between wrap">
+        <div><div class="rt">Ekspor / impor</div><div class="rd">Kata hanya tersimpan di browser ini. Ekspor untuk cadangan, lalu impor di HP atau laptop lain.</div></div>
+        <div class="btns"><button type="button" class="btn" id="expBtn">Ekspor</button><button type="button" class="btn" id="impBtn">Impor</button><input type="file" id="impFile" accept=".json,application/json" hidden></div>
+      </div><div class="row muted small" id="ioMsg" hidden></div></div>`;
+
+    fillForm(editingId ? custom.find(f => f.id === editingId) : null);
+    $("formsBox").addEventListener("input", e => { if (e.target.classList.contains("f-w")) refreshSelects(); });
+    $("addForm").onclick = () => { $("formsBox").appendChild(formRow()); };
+    $("addPart").onclick = () => { $("partsBox").appendChild(partRow()); };
+    $("wordForm").onsubmit = e => { e.preventDefault(); saveWord(); };
+    if ($("cancelEdit")) $("cancelEdit").onclick = () => { editingId = null; renderWords(); };
+    host.querySelectorAll("[data-edit]").forEach(b => b.onclick = () => { editingId = b.dataset.edit; renderWords(); window.scrollTo(0, 0); });
+    host.querySelectorAll("[data-del]").forEach(b => b.onclick = () => deleteWord(b.dataset.del));
+    $("expBtn").onclick = exportWords;
+    $("impBtn").onclick = () => $("impFile").click();
+    $("impFile").onchange = importWords;
+
+    if (wordsMsg) { setMsg(wordsMsg.text, wordsMsg.ok); wordsMsg = null; }
+  }
+
+  function setMsg(text, ok) { const m = $("formMsg"); m.textContent = text; m.className = "fmsg " + (ok ? "ok" : "no"); }
+  function ioMsg(text) { const m = $("ioMsg"); m.textContent = text; m.hidden = false; }
+
+  function formRow(v) {
+    v = v || {};
+    const d = document.createElement("div");
+    d.className = "frow";
+    d.innerHTML = `<input class="f-w" placeholder="kata" value="${esc(v.w || "")}" autocapitalize="off" autocomplete="off" spellcheck="false">` +
+      `<select class="f-pos">${POS.map(p => `<option value="${p}"${p === (v.pos || "noun") ? " selected" : ""}>${p}</option>`).join("")}</select>` +
+      `<input class="f-arti" placeholder="arti" value="${esc(v.arti || "")}">` +
+      `<button type="button" class="xbtn" title="Hapus baris" aria-label="Hapus baris">−</button>`;
+    d.querySelector(".xbtn").onclick = () => { if ($("formsBox").children.length > 2) { d.remove(); refreshSelects(); } };
+    return d;
+  }
+  function partRow(v) {
+    v = v || ["", ""];
+    const d = document.createElement("div");
+    d.className = "prow";
+    d.innerHTML = `<input class="p-b" placeholder="pre-" value="${esc(v[0])}" autocapitalize="off" spellcheck="false">` +
+      `<input class="p-a" placeholder="sebelum" value="${esc(v[1])}">` +
+      `<button type="button" class="xbtn" title="Hapus baris" aria-label="Hapus baris">−</button>`;
+    d.querySelector(".xbtn").onclick = () => d.remove();
+    return d;
+  }
+  function refreshSelects() {
+    const words = [...document.querySelectorAll("#formsBox .f-w")].map(i => i.value.trim()).filter(Boolean);
+    ["partsWord", "sAns"].forEach(id => {
+      const s = $(id), cur = s.value || s.dataset.want || "";
+      s.innerHTML = `<option value="">— pilih —</option>` + words.map(w => `<option value="${esc(w)}"${w === cur ? " selected" : ""}>${esc(w)}</option>`).join("");
+      delete s.dataset.want;
+    });
+  }
+  function fillForm(f) {
+    const fb = $("formsBox"); fb.innerHTML = "";
+    (f ? f.forms : [{}, {}]).forEach(x => fb.appendChild(formRow(x)));
+    const pb = $("partsBox"); pb.innerHTML = "";
+    (f && f.parts ? f.parts.list : [["", ""], ["", ""]]).forEach(p => pb.appendChild(partRow(p)));
+    $("partsWord").dataset.want = f && f.parts ? f.parts.w : "";
+    $("sText").value = f && f.sentence ? f.sentence.text : "";
+    $("sAns").dataset.want = f && f.sentence ? f.sentence.answer : "";
+    $("sWhy").value = f && f.sentence ? f.sentence.why || "" : "";
+    const s0 = f && syns(f)[0], a0 = f && ants(f)[0];
+    $("synW").value = s0 ? s0.w : ""; $("synA").value = s0 ? s0.arti : "";
+    $("antW").value = a0 ? a0.w : ""; $("antA").value = a0 ? a0.arti : "";
+    refreshSelects();
+  }
+
+  function readForm() {
+    const rows = [...document.querySelectorAll("#formsBox .frow")].map(r => ({
+      w: r.querySelector(".f-w").value.trim(), pos: r.querySelector(".f-pos").value, arti: r.querySelector(".f-arti").value.trim()
+    }));
+    const used = rows.filter(r => r.w || r.arti);
+    if (used.some(r => !r.w || !r.arti)) return { err: "Setiap bentuk kata harus diisi kata dan artinya." };
+    if (used.length < 2) return { err: "Isi minimal 2 bentuk kata." };
+    const lower = used.map(r => r.w.toLowerCase());
+    if (new Set(lower).size !== lower.length) return { err: "Ada bentuk kata yang ditulis dua kali." };
+    const main = used[0].w;
+    const id = editingId || "u:" + main.toLowerCase();
+    if (!editingId && fams().some(f => f.id === id || f.forms.some(x => x.w.toLowerCase() === main.toLowerCase()))) {
+      return { err: `"${main}" sudah ada di daftar kata.` };
+    }
+
+    const prow = [...document.querySelectorAll("#partsBox .prow")]
+      .map(r => [r.querySelector(".p-b").value.trim(), r.querySelector(".p-a").value.trim()])
+      .filter(p => p[0] || p[1]);
+    let parts = null;
+    if (prow.length) {
+      if (prow.some(p => !p[0])) return { err: "Kolom potongan tidak boleh kosong (artinya boleh)." };
+      const pw = $("partsWord").value;
+      if (!pw) return { err: "Pilih kata yang dipecah." };
+      parts = { w: pw, list: prow };
+    }
+
+    let sentence = null;
+    const st = $("sText").value.trim().replace(/_{3,}/, "___");
+    if (st) {
+      if (!st.includes("___")) return { err: "Kalimat harus memuat ___ (tiga garis bawah) sebagai tempat kosong." };
+      const ans = $("sAns").value;
+      if (!ans) return { err: "Pilih jawaban untuk kalimat rumpang." };
+      sentence = { text: st, answer: ans, why: $("sWhy").value.trim() };
+    }
+
+    const synW = $("synW").value.trim(), synA = $("synA").value.trim();
+    const antW = $("antW").value.trim(), antA = $("antA").value.trim();
+    return {
+      fam: {
+        id, custom: true, forms: used, focus: main, parts, sentence,
+        synonyms: synW ? [{ w: synW, arti: synA }] : [],
+        antonyms: antW ? [{ w: antW, arti: antA }] : []
+      }
+    };
+  }
+
+  function saveWord() {
+    const r = readForm();
+    if (r.err) return setMsg(r.err, false);
+    const before = custom.slice();
+    if (editingId) custom = custom.map(f => f.id === editingId ? r.fam : f);
+    else custom.push(r.fam);
+    if (!saveCustom()) { custom = before; return setMsg("Gagal menyimpan: penyimpanan browser tidak tersedia.", false); }
+    wordsMsg = { text: `"${r.fam.focus}" tersimpan dan langsung ikut latihan.`, ok: true };
+    editingId = null;
+    updateBadge();
+    renderWords();
+  }
+
+  function deleteWord(id) {
+    const f = custom.find(x => x.id === id);
+    if (!f || !confirm(`Hapus "${focusOf(f)}" dari kata saya?`)) return;
+    custom = custom.filter(x => x.id !== id);
+    saveCustom();
+    if (editingId === id) editingId = null;
+    updateBadge();
+    renderWords();
+  }
+
+  function exportWords() {
+    if (!custom.length) return ioMsg("Belum ada kata untuk diekspor.");
+    const blob = new Blob([JSON.stringify({ app: "vocab-lab", version: 1, words: custom }, null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "vocab-lab-kata-saya.json";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    ioMsg(`${custom.length} kata diekspor ke vocab-lab-kata-saya.json.`);
+  }
+
+  function normalize(f) {
+    if (!f || !Array.isArray(f.forms)) return null;
+    const forms = f.forms
+      .filter(x => x && x.w && x.arti && POS.includes(x.pos))
+      .map(x => ({ w: String(x.w).trim(), pos: x.pos, arti: String(x.arti).trim() }));
+    if (forms.length < 2) return null;
+    const n = { id: "u:" + forms[0].w.toLowerCase(), custom: true, forms, focus: forms[0].w, parts: null, sentence: null, synonyms: [], antonyms: [] };
+    if (f.parts && Array.isArray(f.parts.list) && forms.some(x => x.w === f.parts.w)) {
+      const list = f.parts.list.filter(p => Array.isArray(p) && p[0]).map(p => [String(p[0]), String(p[1] || "")]);
+      if (list.length) n.parts = { w: f.parts.w, list };
+    }
+    if (f.sentence && typeof f.sentence.text === "string" && f.sentence.text.includes("___") && forms.some(x => x.w === f.sentence.answer)) {
+      n.sentence = { text: f.sentence.text, answer: f.sentence.answer, why: String(f.sentence.why || "") };
+    }
+    const rel = a => Array.isArray(a) ? a.filter(x => x && x.w).map(x => ({ w: String(x.w), arti: String(x.arti || "") })) : [];
+    n.synonyms = rel(f.synonyms);
+    n.antonyms = rel(f.antonyms);
+    return n;
+  }
+
+  function importWords(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const rd = new FileReader();
+    rd.onload = () => {
+      let list;
+      try { const data = JSON.parse(rd.result); list = Array.isArray(data) ? data : data.words; } catch (err) { list = null; }
+      if (!Array.isArray(list)) return ioMsg("File tidak bisa dibaca. Pastikan ini file hasil Ekspor Vocab Lab.");
+      let added = 0, updated = 0, skipped = 0;
+      list.forEach(raw => {
+        const n = normalize(raw);
+        if (!n) { skipped++; return; }
+        const builtin = FAMILIES.some(f => f.forms.some(x => x.w.toLowerCase() === n.forms[0].w.toLowerCase()));
+        if (builtin) { skipped++; return; }
+        const i = custom.findIndex(f => f.id === n.id);
+        if (i >= 0) { custom[i] = n; updated++; } else { custom.push(n); added++; }
+      });
+      saveCustom();
+      updateBadge();
+      renderWords();
+      ioMsg(`Impor selesai: ${added} kata baru, ${updated} diperbarui${skipped ? `, ${skipped} dilewati` : ""}.`);
+    };
+    rd.readAsText(file);
+  }
+
+  // =====================================================
+  //  PROGRES
+  // =====================================================
+  function renderProgress() {
+    const host = $("view-progress");
+    const F = fams(), N = F.length, mastered = F.filter(isMastered).length;
+    const pts = F.reduce((t, f) => t + Math.min(famCorrect(f.id), MASTER), 0);
+    const pct = N ? Math.round(100 * pts / (N * MASTER)) : 0;
+    let right = 0, wrong = 0;
+    for (const k in stats) { right += stats[k].c; wrong += stats[k].w; }
+    host.innerHTML = `
+      <h2 class="vtitle">Progres</h2>
+      <p class="vsub">Satu kata dianggap dikuasai setelah 3 jawaban benar di soal kata itu (pecah kata, jenis kata, isi kalimat, sinonim/antonim). Soal imbuhan dicatat terpisah.</p>
+      <div class="stats3">
+        <div class="group stat"><div class="sv">${mastered}<small>/${N}</small></div><div class="sl">kata dikuasai</div></div>
+        <div class="group stat"><div class="sv">${pct}<small>%</small></div><div class="sl">menuju semua dikuasai</div></div>
+        <div class="group stat"><div class="sv">${right}<small>/${right + wrong}</small></div><div class="sl">total jawaban benar</div></div>
+      </div>
+      <div class="group pad"><div class="pbar"><span style="width:${pct}%"></span></div></div>
+      <div class="glabel">Per kata · ■ = 1 jawaban benar</div>
+      <div class="group wgrid">${F.map(f => `<div class="wcell ${isMastered(f) ? "done" : ""}"><span class="fw">${esc(focusOf(f))}${f.custom ? ' <span class="tagmine">saya</span>' : ""}</span>${boxes(f)}</div>`).join("")}</div>
+      <div class="actions"><button type="button" class="btn danger" id="resetBtn">Reset progres</button></div>`;
+    $("resetBtn").onclick = () => {
+      if (!confirm("Hapus semua progres? Kata saya tidak ikut terhapus.")) return;
+      stats = {}; saveStats(); updateBadge(); renderProgress();
+    };
+  }
+
+  // =====================================================
+  //  NAVIGASI
+  // =====================================================
+  const VIEWS = ["round", "free", "words", "progress"];
+  function updateBadge() {
+    const F = fams();
+    $("badge").textContent = `${F.filter(isMastered).length}/${F.length} kata dikuasai`;
+  }
+  function show(v) {
+    activeQuiz = null;
+    VIEWS.forEach(id => { $("view-" + id).hidden = id !== v; });
+    document.querySelectorAll("[data-view]").forEach(b => b.classList.toggle("active", b.dataset.view === v));
+    if (v === "round") renderRound();
+    if (v === "free") renderFree();
+    if (v === "words") renderWords();
+    if (v === "progress") renderProgress();
+    window.scrollTo(0, 0);
+  }
+  document.querySelectorAll("[data-view]").forEach(b => b.onclick = () => show(b.dataset.view));
+
+  updateBadge();
+  show("round");
 })();
