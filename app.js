@@ -169,24 +169,41 @@
   function qRel(fam, kind) {
     const list = kind === "syn" ? syns(fam) : ants(fam);
     const ans = rand(list);
-    const exclude = new Set([...syns(fam), ...ants(fam)].map(x => x.w.toLowerCase()).concat(fam.forms.map(f => f.w.toLowerCase())));
-    const picks = [];
-    const tryAdd = f => {
-      const w = focusOf(f);
-      if (f.id === fam.id || exclude.has(w.toLowerCase()) || picks.some(p => p.w === w)) return;
-      picks.push({ w, arti: focusArti(f) });
-    };
-    for (const f of shuffle(pool())) { if (picks.length >= 3) break; tryAdd(f); }
-    if (!picks.length) for (const f of shuffle(fams())) { if (picks.length) break; tryAdd(f); }
-    const label = kind === "syn" ? "Sinonim" : "Antonim";
     const fw = focusOf(fam);
+    const tp = (fam.forms.find(x => x.w === fw) || fam.forms[0]).pos;
+    const low = w => String(w).toLowerCase();
+    // kata dari daftar sesi ini tidak dipakai sebagai pengecoh, supaya jawaban tidak bisa ditebak lewat eliminasi
+    const listWords = new Set(pool().concat([fam]).flatMap(f => f.forms.map(x => low(x.w))));
+    const famRel = new Set([...syns(fam), ...ants(fam)].map(x => low(x.w)));
+    const keyWords = t => String(t || "").toLowerCase().split(/[^a-zÀ-ɏ-]+/).filter(x => x.length >= 5);
+    const ansMeaning = new Set(keyWords(focusArti(fam)).concat(keyWords(ans.arti)));
+    const tooClose = x => keyWords(x.arti).some(k => ansMeaning.has(k)); // arti mirip jawaban → bisa jadi benar juga
+    const picks = [];
+    const has = w => low(w) === low(ans.w) || picks.some(p => low(p.w) === low(w));
+
+    // 1) jebakan: relasi kebalikan dari kata yang sama (antonim di soal sinonim, dan sebaliknya)
+    const opp = kind === "syn" ? ants(fam) : syns(fam);
+    const trap = shuffle(opp).find(x => !listWords.has(low(x.w)) && !has(x.w));
+    if (trap) picks.push({ ...trap, note: kind === "syn" ? `antonim dari ${fw}` : `sinonim dari ${fw}` });
+
+    // 2) sinonim/antonim kata lain di sesi ini, dengan jenis kata yang sama
+    const others = shuffle(pool().filter(f => f.id !== fam.id && (f.forms.find(x => x.w === focusOf(f)) || f.forms[0]).pos === tp))
+      .flatMap(f => syns(f).concat(ants(f)));
+    const bank = typeof DISTRACTORS !== "undefined" ? DISTRACTORS : [];
+    const ok = x => x && x.w && !listWords.has(low(x.w)) && !famRel.has(low(x.w)) && !has(x.w) && !tooClose(x);
+    for (const x of others) { if (picks.length >= 2) break; if (ok(x)) picks.push(x); }
+    // 3) bank kata akademik acak, jenis kata sama
+    for (const x of shuffle(bank.filter(d => d.pos === tp))) { if (picks.length >= 3) break; if (ok(x)) picks.push(x); }
+    for (const x of shuffle(others.concat(bank))) { if (picks.length >= 3) break; if (ok(x)) picks.push(x); }
+
+    const label = kind === "syn" ? "Sinonim" : "Antonim";
     return {
       tag: label,
       prompt: `${label} dari <b>${esc(fw)}</b>?`,
-      sub: `${esc(fw)} = ${esc(focusArti(fam))}. Pilih kata yang artinya ${kind === "syn" ? "paling mirip" : "berlawanan"}.`,
+      sub: kind === "syn" ? "Pilih kata yang artinya paling mirip." : "Pilih kata yang artinya berlawanan.",
       options: shuffle([ans, ...picks]).map(o => ({ label: o.w, correct: o.w === ans.w })),
-      explain: `<b>${esc(fw)}</b> (${esc(focusArti(fam))}) ${kind === "syn" ? "≈" : "↔"} <b>${esc(ans.w)}</b>${ans.arti ? ` (${esc(ans.arti)})` : ""}.` +
-        `<ul>${picks.map(o => `<li>${esc(o.w)} = ${esc(o.arti)}</li>`).join("")}</ul>`
+      explain: `<b>${esc(fw)}</b> = ${esc(focusArti(fam))}. ${kind === "syn" ? "Sinonimnya" : "Antonimnya"}: <b>${esc(ans.w)}</b>${ans.arti ? ` (${esc(ans.arti)})` : ""}.` +
+        `<ul>${picks.map(o => `<li>${esc(o.w)}${o.arti ? ` = ${esc(o.arti)}` : ""}${o.note ? ` <span class="trap">jebakan: ${esc(o.note)}</span>` : ""}</li>`).join("")}</ul>`
     };
   }
 
@@ -599,8 +616,8 @@
     "pecah: persistent = per- (terus-menerus) + sist (berdiri) + -ent (bersifat)",
     "kalimat: Despite repeated failures, the ___ researcher kept testing new ideas. = persistent",
     "alasan: Sebelum noun (researcher) butuh adjective.",
-    "sinonim: determined = bertekad",
-    "antonim: hesitant = ragu-ragu",
+    "sinonim: persevere = tekun bertahan; endure = bertahan",
+    "antonim: quit = berhenti; surrender = menyerah",
     "",
     "ubiquitous (adj) = ada di mana-mana",
     "ubiquity (n) = keberadaan di mana-mana",
@@ -616,13 +633,15 @@
     "2. Di setiap blok, baris pertama adalah kata utama. Tambahkan bentuk lain yang umum dipakai (word family), satu per baris, dengan format:",
     "   kata (jenis) = arti dalam bahasa Indonesia",
     "   Jenis hanya boleh: n, v, adj, adv.",
-    "3. Baris tambahan berikut boleh ditulis, boleh dilewati:",
+    "3. Setiap blok WAJIB punya baris sinonim dan antonim untuk kata utama:",
+    "   sinonim: kata = arti; kata = arti",
+    "   antonim: kata = arti; kata = arti",
+    "   Tulis 2 sinonim dan 2 antonim kalau ada, dipisah titik koma (;). Pakai kata yang jenisnya sama dengan kata utama dan umum dipakai di teks akademik.",
+    "   Kalau kata itu memang tidak punya lawan kata yang wajar (misalnya kata benda seperti phenomenon), tulis 1 antonim yang paling mendekati atau lewati baris antonim. Jangan mengarang lawan kata yang salah.",
+    "   Baris berikut boleh ditulis, boleh dilewati:",
     "   pecah: kata = potongan (arti) + potongan (arti)",
     "   kalimat: kalimat bahasa Inggris dengan ___ di tempat kosong = jawaban",
     "   alasan: alasan singkat dalam bahasa Indonesia kenapa jawabannya itu",
-    "   sinonim: kata = arti",
-    "   antonim: kata = arti",
-    "   Usahakan setiap blok punya baris sinonim, dan baris antonim kalau lawan katanya jelas.",
     "4. Tulis baris \"pecah\" hanya kalau kata itu benar-benar punya prefix, root, atau suffix yang jelas. Jangan dipaksakan.",
     "5. Jawaban kalimat harus salah satu bentuk kata di blok itu. Buat kalimat bergaya teks akademik seperti soal UTBK Literasi Bahasa Inggris.",
     "6. Kalau satu kata punya dua jenis dengan bentuk sama (misalnya petition sebagai n dan v), tulis dua baris di blok yang sama.",
@@ -635,6 +654,57 @@
     "Daftar kata:",
     "[tempel daftar katamu di sini]"
   ].join("\n");
+
+  // ---------- versi bahasa Inggris (dipakai saat tampilan = EN) ----------
+  const EXAMPLE_EN = [
+    "persist (v) = bertahan, tetap melakukan",
+    "persistence (n) = kegigihan",
+    "persistent (adj) = gigih",
+    "parts: persistent = per- (terus-menerus) + sist (berdiri) + -ent (bersifat)",
+    "sentence: Despite repeated failures, the ___ researcher kept testing new ideas. = persistent",
+    "why: A noun (researcher) needs an adjective before it.",
+    "synonym: persevere = tekun bertahan; endure = bertahan",
+    "antonym: quit = berhenti; surrender = menyerah",
+    "",
+    "ubiquitous (adj) = ada di mana-mana",
+    "ubiquity (n) = keberadaan di mana-mana",
+    "",
+    "meticulous = sangat teliti"
+  ].join("\n");
+
+  const AI_PROMPT_EN = [
+    "Convert the English word list below into Vocab Lab format. Follow these rules exactly:",
+    "",
+    "1. Every word in my list becomes its own block, including similar words, common words, or words from the same family as another word in the list. Never merge two words into one block and never skip a word. The number of blocks must equal the number of words in my list.",
+    "   Separate blocks with exactly one blank line.",
+    "2. In each block, the first line is the main word. Add other common forms (word family), one per line, in this format:",
+    "   word (type) = meaning in Indonesian",
+    "   Type must be one of: n, v, adj, adv.",
+    "3. Every block MUST have synonym and antonym lines for the main word:",
+    "   synonym: word = meaning; word = meaning",
+    "   antonym: word = meaning; word = meaning",
+    "   Write 2 synonyms and 2 antonyms when they exist, separated by semicolons (;). Use words of the same type as the main word that are common in academic texts. Write the meanings in Indonesian.",
+    "   If the word has no reasonable opposite (for example a noun like phenomenon), write the closest 1 antonym or skip the antonym line. Never invent a wrong opposite.",
+    "   These lines are optional:",
+    "   parts: word = piece (meaning) + piece (meaning)",
+    "   sentence: an English sentence with ___ in the blank = answer",
+    "   why: a short explanation in simple English of why that answer fits",
+    "4. Only write a \"parts\" line if the word really has a clear prefix, root, or suffix. Don't force it.",
+    "5. The sentence answer must be one of the word forms in that block. Write sentences in the style of academic texts, like UTBK English reading questions.",
+    "6. If a word has two types with the same spelling (for example petition as n and v), write two lines in the same block.",
+    "7. Don't add numbering, markdown symbols, headings, or any explanation outside the format.",
+    "8. When you finish, check again: does the number of blocks equal the number of words in my list? If not, fix it before answering.",
+    "",
+    "Example block:",
+    EXAMPLE_EN.split("\n\n")[0],
+    "",
+    "Word list:",
+    "[paste your word list here]"
+  ].join("\n");
+
+  const isEN = () => window.VL_LANG === "en";
+  const exampleText = () => isEN() ? EXAMPLE_EN : EXAMPLE;
+  const promptText = () => isEN() ? AI_PROMPT_EN : AI_PROMPT;
 
   // ---------- parser teks tempel ----------
   const KEY_RE = /^(pecah|parts?|kalimat|sentence|alasan|why|sinonim|synonyms?|antonim|antonyms?)\s*:\s*(.*)$/i;
@@ -796,7 +866,7 @@
       <div class="group form">
         <div class="fsec">
           <div class="fhead"><b>Tempel daftar kata</b><span>Satu kata per blok, pisahkan dengan baris kosong. Formatnya ada di bawah.</span></div>
-          <textarea id="pasteBox" rows="12" spellcheck="false" autocapitalize="off" placeholder="${esc(EXAMPLE)}"></textarea>
+          <textarea id="pasteBox" rows="12" spellcheck="false" autocapitalize="off" placeholder="${esc(exampleText())}"></textarea>
           <div class="actions"><button type="button" class="btn small" id="pasteEx">Isi contoh</button><button type="button" class="btn small" id="pasteClear">Kosongkan</button><span class="grow"></span><button type="button" class="btn primary" id="pasteCheck">Periksa</button></div>
         </div>
         <div id="pastePrev"></div>
@@ -818,13 +888,13 @@
           <div><div class="rt">Biar AI yang menyusun formatnya</div><div class="rd">Salin instruksi ini, tempel ke ChatGPT atau Claude bersama daftar katamu, lalu tempel hasilnya ke kotak di atas dan klik Periksa.</div></div>
           <button type="button" class="btn" id="copyPrompt">Salin instruksi</button>
         </div>
-        <details class="det"><summary>Lihat isi instruksi</summary><pre class="pre">${esc(AI_PROMPT)}</pre></details>
+        <details class="det"><summary>Lihat isi instruksi</summary><pre class="pre">${esc(promptText())}</pre></details>
       </div>`;
 
     const box = $("pasteBox");
     box.value = pasteText;
     box.oninput = () => { pasteText = box.value; if (pastePreview) { pastePreview = null; renderPreview(); } };
-    $("pasteEx").onclick = () => { pasteText = box.value = EXAMPLE; pastePreview = null; renderPreview(); };
+    $("pasteEx").onclick = () => { pasteText = box.value = exampleText(); pastePreview = null; renderPreview(); };
     $("pasteClear").onclick = () => { pasteText = box.value = ""; pastePreview = null; renderPreview(); };
     $("pasteCheck").onclick = () => {
       pasteMsg = null;
@@ -832,7 +902,7 @@
       renderPreview();
       $("pastePrev").scrollIntoView({ behavior: "smooth", block: "nearest" });
     };
-    $("copyPrompt").onclick = e => copyText(AI_PROMPT, e.currentTarget);
+    $("copyPrompt").onclick = e => copyText(promptText(), e.currentTarget);
     renderPreview();
   }
 

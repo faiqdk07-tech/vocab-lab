@@ -284,6 +284,9 @@
   .srcnow { font-weight: 600; }
   .srctoggle { display: inline-flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--muted); cursor: pointer; }
   .srctoggle input { width: 18px; height: 18px; margin: 0; padding: 0; accent-color: var(--accent); }
+  .trap { font-size: 11.5px; font-weight: 600; color: #9a5b00; background: #fff1dc; border: 1px solid #f0d3a8; border-radius: 4px; padding: 0 5px; margin-left: 4px; }
+  .langbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 14px; padding: 12px 6px 0; border-top: 1px solid var(--line); font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+  .langbar .seg button { text-transform: none; letter-spacing: 0; font-weight: 600; padding: 4px 12px; }
   .empty { display: grid; gap: 6px; }
   .empty .btns { margin-top: 8px; }
 
@@ -294,6 +297,9 @@
     .side { position: sticky; top: 0; z-index: 5; padding: 10px 12px 8px; border-right: 0; border-bottom: 1px solid var(--line); }
     .brand { padding: 0 2px 8px; margin-bottom: 8px; }
     .nav { grid-template-columns: repeat(4, 1fr); gap: 4px; }
+    .side { position: sticky; }
+    .langbar { position: absolute; top: 12px; right: 12px; margin: 0; padding: 0; border: 0; }
+    .langbar > span { display: none; }
     .nav button { flex-direction: column; gap: 3px; padding: 6px 2px; font-size: 11.5px; text-align: center; }
     main { padding: 18px 14px 40px; }
     .vtitle { font-size: 21px; }
@@ -333,6 +339,7 @@
       <button type="button" data-view="words"><span class="ico" style="--c:#e07a1f">+</span><span>Kata saya</span></button>
       <button type="button" data-view="progress"><span class="ico" style="--c:#2a9450">%</span><span>Progres</span></button>
     </nav>
+    <div class="langbar"><span>Bahasa</span><div class="seg" id="langSeg"><button type="button" data-l="id">ID</button><button type="button" data-l="en">EN</button></div></div>
   </aside>
   <main>
     <section id="view-round"></section>
@@ -341,7 +348,8 @@
     <section id="view-progress" hidden></section>
   </main>
 </div>
-<script src="data.js?v=8"></script>
-<script src="app.js?v=8"></script>
+<script src="i18n.js?v=11"></script>
+<script src="data.js?v=11"></script>
+<script src="app.js?v=11"></script>
 </body>
 </html>
