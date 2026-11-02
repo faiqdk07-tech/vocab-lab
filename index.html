@@ -236,6 +236,32 @@
   .fmsg.ok { color: var(--ok); }
   .fmsg.no { color: var(--no); }
 
+  .btn:disabled { opacity: .45; cursor: default; }
+  .grow { flex: 1; }
+  .row.col { flex-direction: column; align-items: flex-start; gap: 4px; }
+  .fmt { font: 600 13px var(--mono); background: var(--bg); border: 1px solid var(--line2); border-radius: 5px; padding: 2px 8px; }
+  #pasteBox { font: 13.5px/1.55 var(--mono); min-height: 220px; }
+  #pasteBox::placeholder { color: #a5a5ad; }
+  .det summary { cursor: pointer; list-style: none; display: flex; flex-direction: column; }
+  .det summary::-webkit-details-marker { display: none; }
+  .det summary b::before { content: "▸ "; color: var(--muted); }
+  .det[open] summary b::before { content: "▾ "; }
+  .det summary span { font-size: 13px; color: var(--muted); }
+  .group > .det { border-top: 1px solid var(--line2); padding: 11px 16px; }
+  .group > .det summary { font-size: 14px; color: var(--accent); flex-direction: row; }
+  .pre { margin: 10px 0 0; padding: 12px; background: var(--bg); border: 1px solid var(--line2); border-radius: 8px; font: 12.5px/1.55 var(--mono); white-space: pre-wrap; word-break: break-word; }
+  .subsec { padding-top: 14px; margin-top: 14px; border-top: 1px dashed var(--line); }
+  .plist { display: grid; gap: 6px; }
+  .pitem { border: 1px solid var(--line); border-left-width: 4px; border-radius: 7px; padding: 8px 12px; font-size: 13.5px; }
+  .phead { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+  .stl { font-size: 12px; font-weight: 600; }
+  .st-new { border-left-color: var(--ok); } .st-new .stl { color: var(--ok); }
+  .st-update { border-left-color: var(--accent); } .st-update .stl { color: var(--accent); }
+  .st-builtin { border-left-color: #a0a0a8; } .st-builtin .stl { color: var(--muted); }
+  .st-error { border-left-color: var(--no); background: var(--no-soft); } .st-error .stl { color: var(--no); }
+  .perr { color: var(--no); font-size: 13px; margin-top: 2px; }
+  .pnote { color: #9a5b00; font-size: 13px; margin-top: 2px; }
+
   /* ================= layar kecil ================= */
   @media (max-width: 800px) {
     body { background: var(--bg); }

@@ -86,13 +86,19 @@
   function qFill(fam) {
     const s = fam.sentence;
     const ans = fam.forms.find(f => f.w === s.answer);
+    // kata yang cuma punya 1 bentuk: pengecoh diambil dari kata lain dengan jenis yang sama
+    const opts = fam.forms.slice();
+    if (opts.length < 2) {
+      const extra = shuffle(allForms().filter(f => f.fam !== fam.id && f.pos === ans.pos && !opts.some(o => o.w.toLowerCase() === f.w.toLowerCase())));
+      while (opts.length < 4 && extra.length) opts.push(extra.pop());
+    }
     return {
       tag: "Isi kalimat",
       prompt: esc(s.text).replace("___", '<span class="blank">______</span>'),
       sub: "Pilih bentuk kata yang tepat.",
-      options: shuffle(fam.forms).map(f => ({ label: f.w, correct: f.w === s.answer })),
+      options: shuffle(opts).map(f => ({ label: f.w, correct: f.w === s.answer })),
       explain: `${s.why ? esc(s.why) + " " : ""}Jawaban: <b>${esc(ans.w)}</b> (${ans.pos}, ${esc(ans.arti)}).` +
-        `<ul>${fam.forms.filter(f => f.w !== ans.w).map(f => `<li>${esc(f.w)} = ${f.pos}</li>`).join("")}</ul>`
+        `<ul>${opts.filter(f => f.w !== ans.w).map(f => `<li>${esc(f.w)} = ${f.pos}${f.fam !== undefined ? ` (${esc(f.arti)})` : ""}</li>`).join("")}</ul>`
     };
   }
 
@@ -439,44 +445,172 @@
   // =====================================================
   //  KATA SAYA (tambah kata langsung dari web)
   // =====================================================
-  let editingId = null, wordsMsg = null;
+  let editingId = null, wordsMsg = null, wordsTab = "paste", pasteText = "", pastePreview = null, pasteMsg = null;
 
+  const POS_MAP = { n: "noun", noun: "noun", kb: "noun", v: "verb", verb: "verb", kk: "verb", adj: "adjective", adjective: "adjective", ks: "adjective", adv: "adverb", adverb: "adverb", ket: "adverb" };
+  const GUESS_SKIP = ["er", "or", "en", "al"]; // akhiran yang terlalu sering menipu
+  function guessPos(w) {
+    const lw = w.toLowerCase();
+    const h = SUFFIX_HINTS.find(h => !GUESS_SKIP.includes(h.end) && lw.endsWith(h.end) && lw.length > h.end.length + 2);
+    return h ? h.pos : null;
+  }
+
+  const EXAMPLE = [
+    "persist (v) = bertahan, tetap melakukan",
+    "persistence (n) = kegigihan",
+    "persistent (adj) = gigih",
+    "pecah: persistent = per- (terus-menerus) + sist (berdiri) + -ent (bersifat)",
+    "kalimat: Despite repeated failures, the ___ researcher kept testing new ideas. = persistent",
+    "alasan: Sebelum noun (researcher) butuh adjective.",
+    "sinonim: determined = bertekad",
+    "antonim: hesitant = ragu-ragu",
+    "",
+    "ubiquitous (adj) = ada di mana-mana",
+    "ubiquity (n) = keberadaan di mana-mana",
+    "",
+    "meticulous = sangat teliti"
+  ].join("\n");
+
+  const AI_PROMPT = [
+    "Ubah daftar kata bahasa Inggris di bawah ini ke format Vocab Lab. Ikuti aturan ini persis:",
+    "",
+    "1. Satu kata = satu blok. Pisahkan antarblok dengan satu baris kosong.",
+    "2. Di setiap blok, baris pertama adalah kata utama. Tambahkan bentuk lain yang umum dipakai (word family), satu per baris, dengan format:",
+    "   kata (jenis) = arti dalam bahasa Indonesia",
+    "   Jenis hanya boleh: n, v, adj, adv.",
+    "3. Baris tambahan berikut boleh ditulis, boleh dilewati:",
+    "   pecah: kata = potongan (arti) + potongan (arti)",
+    "   kalimat: kalimat bahasa Inggris dengan ___ di tempat kosong = jawaban",
+    "   alasan: alasan singkat dalam bahasa Indonesia kenapa jawabannya itu",
+    "   sinonim: kata = arti",
+    "   antonim: kata = arti",
+    "4. Tulis baris \"pecah\" hanya kalau kata itu benar-benar punya prefix, root, atau suffix yang jelas. Jangan dipaksakan.",
+    "5. Jawaban kalimat harus salah satu bentuk kata di blok itu. Buat kalimat bergaya teks akademik seperti soal UTBK Literasi Bahasa Inggris.",
+    "6. Jangan tambahkan penomoran, simbol markdown, judul, atau penjelasan lain di luar format.",
+    "",
+    "Contoh satu blok:",
+    EXAMPLE.split("\n\n")[0],
+    "",
+    "Daftar kata:",
+    "[tempel daftar katamu di sini]"
+  ].join("\n");
+
+  // ---------- parser teks tempel ----------
+  const KEY_RE = /^(pecah|parts?|kalimat|sentence|alasan|why|sinonim|synonyms?|antonim|antonyms?)\s*:\s*(.*)$/i;
+  const FORM_RE = /^(.+?)\s*(?:\(([^)]*)\))?\s*[=:–—]\s*(.+)$/;
+  const cleanLine = l => l.replace(/\*\*/g, "").replace(/^\s*(?:[-*•]|\d+[.)])\s+/, "").trim();
+  function relList(val) {
+    const items = val.includes("=") ? val.split(";") : val.split(/[;,]/);
+    return items.map(it => {
+      const i = it.indexOf("=");
+      return i < 0 ? { w: it.trim(), arti: "" } : { w: it.slice(0, i).trim(), arti: it.slice(i + 1).trim() };
+    }).filter(x => x.w);
+  }
+  function parseBulk(text) {
+    const blocks = [];
+    let cur = [];
+    text.replace(/\r/g, "").split("\n").forEach(l => {
+      if (/^\s*```/.test(l)) return;
+      const c = cleanLine(l);
+      if (!c) { if (cur.length) blocks.push(cur); cur = []; }
+      else if (!c.startsWith("#")) cur.push(c);
+    });
+    if (cur.length) blocks.push(cur);
+    return blocks.map(parseBlock);
+  }
+  function parseBlock(lines) {
+    const forms = [], errs = [], notes = [];
+    let partsRaw = null, sentRaw = null, why = "", synonyms = [], antonyms = [];
+    for (const line of lines) {
+      const k = line.match(KEY_RE);
+      if (k) {
+        const key = k[1].toLowerCase(), val = k[2].trim();
+        if (key === "pecah" || key.startsWith("part")) {
+          let w = "", rest = val;
+          if (val.includes("=")) { w = val.slice(0, val.indexOf("=")).trim(); rest = val.slice(val.indexOf("=") + 1); }
+          const list = rest.split("+").map(s => {
+            const pm = s.trim().match(/^(.+?)\s*(?:\((.*)\))?$/);
+            return pm ? [pm[1].trim(), (pm[2] || "").trim()] : null;
+          }).filter(p => p && p[0]);
+          if (list.length) partsRaw = { w, list }; else errs.push("baris pecah masih kosong");
+        } else if (key === "kalimat" || key === "sentence") {
+          const i = val.lastIndexOf("=");
+          sentRaw = i < 0 ? { text: val, answer: "" } : { text: val.slice(0, i).trim(), answer: val.slice(i + 1).trim() };
+          sentRaw.text = sentRaw.text.replace(/_{3,}/, "___");
+        } else if (key === "alasan" || key === "why") why = val;
+        else if (key === "sinonim" || key.startsWith("synonym")) synonyms = synonyms.concat(relList(val));
+        else antonyms = antonyms.concat(relList(val));
+        continue;
+      }
+      const fm = line.match(FORM_RE);
+      if (!fm) { errs.push(`baris tidak dikenali: "${line}" (contoh: kata (n) = arti)`); continue; }
+      const w = fm[1].trim(), arti = fm[3].trim();
+      const posRaw = (fm[2] || "").trim().toLowerCase().replace(/\.$/, "");
+      let pos = POS_MAP[posRaw];
+      if (posRaw && !pos) { errs.push(`jenis kata "(${fm[2]})" pada "${w}" tidak dikenali, pakai n, v, adj, atau adv`); continue; }
+      if (!pos) {
+        pos = guessPos(w);
+        if (pos) notes.push(`jenis "${w}" ditebak dari akhirannya: ${pos}. Cek lagi, ya.`);
+        else { errs.push(`jenis kata "${w}" belum ditulis, contoh: ${w} (n) = ${arti}`); continue; }
+      }
+      if (forms.some(f => f.w.toLowerCase() === w.toLowerCase())) { errs.push(`"${w}" ditulis dua kali`); continue; }
+      forms.push({ w, pos, arti });
+    }
+    const raw = lines.join("\n");
+    if (!forms.length) {
+      errs.push("belum ada baris kata, contoh: kata (n) = arti");
+      return { title: lines[0], raw, fam: null, errs, notes };
+    }
+    const find = w => forms.find(f => f.w.toLowerCase() === w.toLowerCase());
+    let parts = null;
+    if (partsRaw) {
+      const target = partsRaw.w ? find(partsRaw.w) : forms[0];
+      if (!target) errs.push(`kata "${partsRaw.w}" di baris pecah tidak ada di blok ini`);
+      else parts = { w: target.w, list: partsRaw.list };
+    }
+    let sentence = null;
+    if (sentRaw) {
+      const ansF = sentRaw.answer ? find(sentRaw.answer) : (forms.length === 1 ? forms[0] : null);
+      if (!sentRaw.text.includes("___")) errs.push("kalimat harus memuat ___ (tiga garis bawah)");
+      else if (!ansF) errs.push(sentRaw.answer ? `jawaban "${sentRaw.answer}" tidak ada di bentuk kata blok ini` : "kalimat belum punya jawaban, tambahkan = jawaban di akhir");
+      else sentence = { text: sentRaw.text, answer: ansF.w, why };
+    }
+    const main = forms[0].w;
+    return {
+      title: main, raw, errs, notes,
+      fam: errs.length ? null : { id: "u:" + main.toLowerCase(), custom: true, forms, focus: main, parts, sentence, synonyms, antonyms }
+    };
+  }
+  function statusOf(fam) {
+    const m = fam.focus.toLowerCase();
+    if (FAMILIES.some(f => f.forms.some(x => x.w.toLowerCase() === m))) return "builtin";
+    return custom.some(f => f.id === fam.id) ? "update" : "new";
+  }
+  async function copyText(text, btn) {
+    let ok = false;
+    try { await navigator.clipboard.writeText(text); ok = true; } catch (e) {
+      const ta = document.createElement("textarea");
+      ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.select();
+      try { ok = document.execCommand("copy"); } catch (_) { ok = false; }
+      ta.remove();
+    }
+    const old = btn.textContent;
+    btn.textContent = ok ? "Tersalin ✓" : "Gagal, salin manual";
+    setTimeout(() => { btn.textContent = old; }, 1800);
+  }
+
+  // ---------- tampilan utama Kata saya ----------
   function renderWords() {
     const host = $("view-words");
     host.innerHTML = `
       <h2 class="vtitle">Kata saya</h2>
       <p class="vsub">Tambahkan kata dari bacaanmu. Kata langsung ikut di ronde terpandu dan latihan bebas.</p>
-      <div class="glabel">${editingId ? "Edit kata" : "Tambah kata baru"}</div>
-      <form class="group form" id="wordForm" novalidate>
-        <div class="fsec">
-          <div class="fhead"><b>1. Bentuk kata</b><span>Wajib, minimal 2 bentuk. Baris pertama jadi kata utama.</span></div>
-          <div class="frow fhdr"><span>Kata</span><span>Jenis</span><span>Arti</span><span></span></div>
-          <div id="formsBox"></div>
-          <button type="button" class="btn small" id="addForm">+ Tambah bentuk</button>
-        </div>
-        <div class="fsec">
-          <div class="fhead"><b>2. Pecah kata</b><span>Opsional. Pilih satu bentuk, lalu isi potongan dan artinya.</span></div>
-          <label class="fl">Kata yang dipecah<select id="partsWord"></select></label>
-          <div class="prow fhdr"><span>Potongan</span><span>Arti potongan</span><span></span></div>
-          <div id="partsBox"></div>
-          <button type="button" class="btn small" id="addPart">+ Tambah potongan</button>
-        </div>
-        <div class="fsec">
-          <div class="fhead"><b>3. Kalimat rumpang</b><span>Opsional. Tulis ___ (tiga garis bawah) di tempat kosong.</span></div>
-          <label class="fl">Kalimat<textarea id="sText" rows="2" placeholder="The ___ advertisement made the product look better than it was."></textarea></label>
-          <div class="grid2"><label class="fl">Jawaban<select id="sAns"></select></label><label class="fl">Alasan (opsional)<input id="sWhy" placeholder="Sebelum noun butuh adjective."></label></div>
-        </div>
-        <div class="fsec">
-          <div class="fhead"><b>4. Sinonim & antonim</b><span>Opsional. Padanan dan lawan dari kata utama.</span></div>
-          <div class="grid2"><label class="fl">Sinonim<input id="synW" placeholder="misleading" autocapitalize="off" spellcheck="false"></label><label class="fl">Arti sinonim<input id="synA" placeholder="menyesatkan"></label></div>
-          <div class="grid2"><label class="fl">Antonim<input id="antW" placeholder="honest" autocapitalize="off" spellcheck="false"></label><label class="fl">Arti antonim<input id="antA" placeholder="jujur"></label></div>
-        </div>
-        <div class="fsec factions">
-          <span id="formMsg" class="fmsg"></span>
-          ${editingId ? '<button type="button" class="btn" id="cancelEdit">Batal</button>' : ""}
-          <button type="submit" class="btn primary">${editingId ? "Simpan perubahan" : "Simpan kata"}</button>
-        </div>
-      </form>
+      <div class="toolbar"><div class="seg" id="wtab">
+        <button type="button" data-t="paste" class="${wordsTab === "paste" ? "active" : ""}">Tempel banyak kata</button>
+        <button type="button" data-t="form" class="${wordsTab === "form" ? "active" : ""}">Isi satu per satu</button>
+      </div></div>
+      <div id="wtabBody"></div>
 
       <div class="glabel">Daftar kata saya (${custom.length})</div>
       <div class="group">${custom.length ? custom.map(f => `
@@ -491,18 +625,152 @@
         <div class="btns"><button type="button" class="btn" id="expBtn">Ekspor</button><button type="button" class="btn" id="impBtn">Impor</button><input type="file" id="impFile" accept=".json,application/json" hidden></div>
       </div><div class="row muted small" id="ioMsg" hidden></div></div>`;
 
-    fillForm(editingId ? custom.find(f => f.id === editingId) : null);
-    $("formsBox").addEventListener("input", e => { if (e.target.classList.contains("f-w")) refreshSelects(); });
-    $("addForm").onclick = () => { $("formsBox").appendChild(formRow()); };
-    $("addPart").onclick = () => { $("partsBox").appendChild(partRow()); };
-    $("wordForm").onsubmit = e => { e.preventDefault(); saveWord(); };
-    if ($("cancelEdit")) $("cancelEdit").onclick = () => { editingId = null; renderWords(); };
-    host.querySelectorAll("[data-edit]").forEach(b => b.onclick = () => { editingId = b.dataset.edit; renderWords(); window.scrollTo(0, 0); });
+    host.querySelectorAll("#wtab button").forEach(b => b.onclick = () => { wordsTab = b.dataset.t; if (wordsTab === "paste") editingId = null; renderWords(); });
+    host.querySelectorAll("[data-edit]").forEach(b => b.onclick = () => { editingId = b.dataset.edit; wordsTab = "form"; renderWords(); window.scrollTo(0, 0); });
     host.querySelectorAll("[data-del]").forEach(b => b.onclick = () => deleteWord(b.dataset.del));
     $("expBtn").onclick = exportWords;
     $("impBtn").onclick = () => $("impFile").click();
     $("impFile").onchange = importWords;
 
+    if (wordsTab === "paste") renderPaste($("wtabBody"));
+    else renderForm($("wtabBody"));
+  }
+
+  // ---------- tab: tempel banyak ----------
+  function renderPaste(body) {
+    body.innerHTML = `
+      <div class="group form">
+        <div class="fsec">
+          <div class="fhead"><b>Tempel daftar kata</b><span>Satu kata per blok, pisahkan dengan baris kosong. Formatnya ada di bawah.</span></div>
+          <textarea id="pasteBox" rows="12" spellcheck="false" autocapitalize="off" placeholder="${esc(EXAMPLE)}"></textarea>
+          <div class="actions"><button type="button" class="btn small" id="pasteEx">Isi contoh</button><button type="button" class="btn small" id="pasteClear">Kosongkan</button><span class="grow"></span><button type="button" class="btn primary" id="pasteCheck">Periksa</button></div>
+        </div>
+        <div id="pastePrev"></div>
+      </div>
+
+      <div class="glabel">Format</div>
+      <div class="group">
+        <div class="row col"><code class="fmt">kata (jenis) = arti</code><span class="rd"><b>Wajib</b>, minimal 1 baris per blok. Jenis: <b>n</b>, <b>v</b>, <b>adj</b>, <b>adv</b>. Kalau tidak ditulis, sistem menebak dari akhiran (-tion, -ous, -ly, dll.).</span></div>
+        <div class="row col"><code class="fmt">pecah: kata = potongan (arti) + potongan (arti)</code><span class="rd">Opsional. Hanya untuk kata yang punya imbuhan jelas.</span></div>
+        <div class="row col"><code class="fmt">kalimat: kalimat dengan ___ = jawaban</code><span class="rd">Opsional. Jawaban harus salah satu bentuk kata di blok itu.</span></div>
+        <div class="row col"><code class="fmt">alasan: penjelasan singkat</code><span class="rd">Opsional. Muncul setelah menjawab soal kalimat.</span></div>
+        <div class="row col"><code class="fmt">sinonim: kata = arti</code><span class="rd">Opsional. Lebih dari satu? Pisahkan dengan titik koma (;).</span></div>
+        <div class="row col"><code class="fmt">antonim: kata = arti</code><span class="rd">Opsional.</span></div>
+      </div>
+
+      <div class="glabel">Instruksi untuk AI</div>
+      <div class="group">
+        <div class="row between wrap">
+          <div><div class="rt">Biar AI yang menyusun formatnya</div><div class="rd">Salin instruksi ini, tempel ke ChatGPT atau Claude bersama daftar katamu, lalu tempel hasilnya ke kotak di atas dan klik Periksa.</div></div>
+          <button type="button" class="btn" id="copyPrompt">Salin instruksi</button>
+        </div>
+        <details class="det"><summary>Lihat isi instruksi</summary><pre class="pre">${esc(AI_PROMPT)}</pre></details>
+      </div>`;
+
+    const box = $("pasteBox");
+    box.value = pasteText;
+    box.oninput = () => { pasteText = box.value; if (pastePreview) { pastePreview = null; renderPreview(); } };
+    $("pasteEx").onclick = () => { pasteText = box.value = EXAMPLE; pastePreview = null; renderPreview(); };
+    $("pasteClear").onclick = () => { pasteText = box.value = ""; pastePreview = null; renderPreview(); };
+    $("pasteCheck").onclick = () => {
+      pasteMsg = null;
+      pastePreview = pasteText.trim() ? parseBulk(pasteText) : [];
+      renderPreview();
+      $("pastePrev").scrollIntoView({ behavior: "smooth", block: "nearest" });
+    };
+    $("copyPrompt").onclick = e => copyText(AI_PROMPT, e.currentTarget);
+    renderPreview();
+  }
+
+  function renderPreview() {
+    const box = $("pastePrev");
+    if (!box) return;
+    if (!pastePreview) {
+      box.innerHTML = pasteMsg ? `<div class="fsec"><span class="fmsg ok">${esc(pasteMsg)}</span></div>` : "";
+      return;
+    }
+    if (!pastePreview.length) { box.innerHTML = `<div class="fsec"><span class="fmsg no">Kotaknya masih kosong.</span></div>`; return; }
+    const res = pastePreview;
+    const ready = res.filter(r => r.fam && statusOf(r.fam) !== "builtin");
+    const bad = res.filter(r => !r.fam).length;
+    const LBL = { new: "baru", update: "perbarui", builtin: "sudah ada (bawaan)", error: "perlu diperbaiki" };
+    box.innerHTML = `
+      <div class="fsec">
+        <div class="fhead"><b>Hasil pemeriksaan</b><span>${res.length} blok · ${ready.length} siap disimpan${bad ? ` · ${bad} perlu diperbaiki` : ""}</span></div>
+        <div class="plist">${res.map(r => {
+          const st = r.fam ? statusOf(r.fam) : "error";
+          const info = r.fam ? [`${r.fam.forms.length} bentuk`, r.fam.parts && "pecah", r.fam.sentence && "kalimat", r.fam.synonyms.length && "sinonim", r.fam.antonyms.length && "antonim"].filter(Boolean).join(" · ") : "";
+          return `<div class="pitem st-${st}">
+            <div class="phead"><span class="fw">${esc(r.title)}</span><span class="stl">${LBL[st]}</span></div>
+            ${info ? `<div class="rd">${esc(info)}</div>` : ""}
+            ${r.errs.map(e => `<div class="perr">${esc(e)}</div>`).join("")}
+            ${r.notes.map(n => `<div class="pnote">${esc(n)}</div>`).join("")}
+          </div>`;
+        }).join("")}</div>
+      </div>
+      <div class="fsec factions">
+        <span class="fmsg">${bad ? "Blok merah tidak ikut disimpan dan tetap di kotak supaya bisa diperbaiki." : ""}</span>
+        <button type="button" class="btn primary" id="pasteSave"${ready.length ? "" : " disabled"}>Simpan ${ready.length} kata</button>
+      </div>`;
+    $("pasteSave").onclick = () => {
+      const before = custom.slice();
+      ready.forEach(r => {
+        const i = custom.findIndex(f => f.id === r.fam.id);
+        if (i >= 0) custom[i] = r.fam; else custom.push(r.fam);
+      });
+      if (!saveCustom()) { custom = before; pasteMsg = "Gagal menyimpan: penyimpanan browser tidak tersedia."; pastePreview = null; renderPreview(); return; }
+      pasteText = res.filter(r => !r.fam).map(r => r.raw).join("\n\n");
+      pastePreview = null;
+      pasteMsg = `${ready.length} kata tersimpan dan langsung ikut latihan.${bad ? ` ${bad} blok yang perlu diperbaiki masih di kotak.` : ""}`;
+      updateBadge();
+      renderWords();
+    };
+  }
+
+  // ---------- tab: isi satu per satu ----------
+  function renderForm(body) {
+    const f = editingId ? custom.find(x => x.id === editingId) : null;
+    if (editingId && !f) editingId = null;
+    body.innerHTML = `
+      <form class="group form" id="wordForm" novalidate>
+        <div class="fsec">
+          <div class="fhead"><b>${editingId ? "Edit kata" : "Bentuk kata"}</b><span>Wajib minimal 1. Baris pertama jadi kata utama. Tambah bentuk lain kalau ada.</span></div>
+          <div class="frow fhdr"><span>Kata</span><span>Jenis</span><span>Arti</span><span></span></div>
+          <div id="formsBox"></div>
+          <button type="button" class="btn small" id="addForm">+ Tambah bentuk</button>
+        </div>
+        <details class="fsec det"${f && (f.parts || f.sentence || syns(f).length || ants(f).length) ? " open" : ""}>
+          <summary><b>Tambahan (opsional)</b><span>Pecah kata, kalimat rumpang, sinonim & antonim</span></summary>
+          <div class="subsec">
+            <div class="fhead"><b>Pecah kata</b><span>Lewati kalau katanya tidak punya imbuhan yang jelas.</span></div>
+            <label class="fl">Kata yang dipecah<select id="partsWord"></select></label>
+            <div id="partsBox"></div>
+            <button type="button" class="btn small" id="addPart">+ Tambah potongan</button>
+          </div>
+          <div class="subsec">
+            <div class="fhead"><b>Kalimat rumpang</b><span>Tulis ___ (tiga garis bawah) di tempat kosong.</span></div>
+            <label class="fl">Kalimat<textarea id="sText" rows="2"></textarea></label>
+            <div class="grid2"><label class="fl">Jawaban<select id="sAns"></select></label><label class="fl">Alasan<input id="sWhy"></label></div>
+          </div>
+          <div class="subsec">
+            <div class="fhead"><b>Sinonim & antonim</b><span>Padanan dan lawan dari kata utama.</span></div>
+            <div class="grid2"><label class="fl">Sinonim<input id="synW" autocapitalize="off" spellcheck="false"></label><label class="fl">Arti sinonim<input id="synA"></label></div>
+            <div class="grid2"><label class="fl">Antonim<input id="antW" autocapitalize="off" spellcheck="false"></label><label class="fl">Arti antonim<input id="antA"></label></div>
+          </div>
+        </details>
+        <div class="fsec factions">
+          <span id="formMsg" class="fmsg"></span>
+          ${editingId ? '<button type="button" class="btn" id="cancelEdit">Batal</button>' : ""}
+          <button type="submit" class="btn primary">${editingId ? "Simpan perubahan" : "Simpan kata"}</button>
+        </div>
+      </form>`;
+
+    fillForm(f);
+    $("formsBox").addEventListener("input", e => { if (e.target.classList.contains("f-w")) refreshSelects(); });
+    $("addForm").onclick = () => { $("formsBox").appendChild(formRow()); };
+    $("addPart").onclick = () => { $("partsBox").appendChild(partRow()); };
+    $("wordForm").onsubmit = e => { e.preventDefault(); saveWord(); };
+    if ($("cancelEdit")) $("cancelEdit").onclick = () => { editingId = null; renderWords(); };
     if (wordsMsg) { setMsg(wordsMsg.text, wordsMsg.ok); wordsMsg = null; }
   }
 
@@ -517,15 +785,19 @@
       `<select class="f-pos">${POS.map(p => `<option value="${p}"${p === (v.pos || "noun") ? " selected" : ""}>${p}</option>`).join("")}</select>` +
       `<input class="f-arti" placeholder="arti" value="${esc(v.arti || "")}">` +
       `<button type="button" class="xbtn" title="Hapus baris" aria-label="Hapus baris">−</button>`;
-    d.querySelector(".xbtn").onclick = () => { if ($("formsBox").children.length > 2) { d.remove(); refreshSelects(); } };
+    d.querySelector(".f-w").addEventListener("change", e => {
+      const g = guessPos(e.target.value.trim());
+      if (g && !v.pos) d.querySelector(".f-pos").value = g; // tebak jenis kata dari akhiran
+    });
+    d.querySelector(".xbtn").onclick = () => { if ($("formsBox").children.length > 1) { d.remove(); refreshSelects(); } };
     return d;
   }
   function partRow(v) {
     v = v || ["", ""];
     const d = document.createElement("div");
     d.className = "prow";
-    d.innerHTML = `<input class="p-b" placeholder="pre-" value="${esc(v[0])}" autocapitalize="off" spellcheck="false">` +
-      `<input class="p-a" placeholder="sebelum" value="${esc(v[1])}">` +
+    d.innerHTML = `<input class="p-b" placeholder="potongan" value="${esc(v[0])}" autocapitalize="off" spellcheck="false">` +
+      `<input class="p-a" placeholder="arti potongan" value="${esc(v[1])}">` +
       `<button type="button" class="xbtn" title="Hapus baris" aria-label="Hapus baris">−</button>`;
     d.querySelector(".xbtn").onclick = () => d.remove();
     return d;
@@ -540,9 +812,9 @@
   }
   function fillForm(f) {
     const fb = $("formsBox"); fb.innerHTML = "";
-    (f ? f.forms : [{}, {}]).forEach(x => fb.appendChild(formRow(x)));
+    (f ? f.forms : [{}]).forEach(x => fb.appendChild(formRow(x)));
     const pb = $("partsBox"); pb.innerHTML = "";
-    (f && f.parts ? f.parts.list : [["", ""], ["", ""]]).forEach(p => pb.appendChild(partRow(p)));
+    (f && f.parts ? f.parts.list : []).forEach(p => pb.appendChild(partRow(p)));
     $("partsWord").dataset.want = f && f.parts ? f.parts.w : "";
     $("sText").value = f && f.sentence ? f.sentence.text : "";
     $("sAns").dataset.want = f && f.sentence ? f.sentence.answer : "";
@@ -559,7 +831,7 @@
     }));
     const used = rows.filter(r => r.w || r.arti);
     if (used.some(r => !r.w || !r.arti)) return { err: "Setiap bentuk kata harus diisi kata dan artinya." };
-    if (used.length < 2) return { err: "Isi minimal 2 bentuk kata." };
+    if (!used.length) return { err: "Isi minimal 1 kata." };
     const lower = used.map(r => r.w.toLowerCase());
     if (new Set(lower).size !== lower.length) return { err: "Ada bentuk kata yang ditulis dua kali." };
     const main = used[0].w;
@@ -574,7 +846,7 @@
     let parts = null;
     if (prow.length) {
       if (prow.some(p => !p[0])) return { err: "Kolom potongan tidak boleh kosong (artinya boleh)." };
-      const pw = $("partsWord").value;
+      const pw = $("partsWord").value || (used.length === 1 ? main : "");
       if (!pw) return { err: "Pilih kata yang dipecah." };
       parts = { w: pw, list: prow };
     }
@@ -583,7 +855,7 @@
     const st = $("sText").value.trim().replace(/_{3,}/, "___");
     if (st) {
       if (!st.includes("___")) return { err: "Kalimat harus memuat ___ (tiga garis bawah) sebagai tempat kosong." };
-      const ans = $("sAns").value;
+      const ans = $("sAns").value || (used.length === 1 ? main : "");
       if (!ans) return { err: "Pilih jawaban untuk kalimat rumpang." };
       sentence = { text: st, answer: ans, why: $("sWhy").value.trim() };
     }
@@ -638,7 +910,7 @@
     const forms = f.forms
       .filter(x => x && x.w && x.arti && POS.includes(x.pos))
       .map(x => ({ w: String(x.w).trim(), pos: x.pos, arti: String(x.arti).trim() }));
-    if (forms.length < 2) return null;
+    if (!forms.length) return null;
     const n = { id: "u:" + forms[0].w.toLowerCase(), custom: true, forms, focus: forms[0].w, parts: null, sentence: null, synonyms: [], antonyms: [] };
     if (f.parts && Array.isArray(f.parts.list) && forms.some(x => x.w === f.parts.w)) {
       const list = f.parts.list.filter(p => Array.isArray(p) && p[0]).map(p => [String(p[0]), String(p[1] || "")]);
@@ -665,8 +937,7 @@
       list.forEach(raw => {
         const n = normalize(raw);
         if (!n) { skipped++; return; }
-        const builtin = FAMILIES.some(f => f.forms.some(x => x.w.toLowerCase() === n.forms[0].w.toLowerCase()));
-        if (builtin) { skipped++; return; }
+        if (statusOf(n) === "builtin") { skipped++; return; }
         const i = custom.findIndex(f => f.id === n.id);
         if (i >= 0) { custom[i] = n; updated++; } else { custom.push(n); added++; }
       });
