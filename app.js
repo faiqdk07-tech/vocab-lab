@@ -29,14 +29,17 @@
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const $ = id => document.getElementById(id);
 
-  const fams = () => FAMILIES.concat(custom);
+  const customWords = () => new Set(custom.flatMap(f => f.forms.map(x => x.w.toLowerCase())));
+  const examples = () => { const cw = customWords(); return FAMILIES.filter(f => !f.forms.some(x => cw.has(x.w.toLowerCase()))); };
+  const fams = () => custom.concat(examples());
   const allForms = () => fams().flatMap(f => f.forms.map(x => ({ ...x, fam: f.id })));
 
   // Sumber kata: "mine" = hanya kata saya, "all" = kata saya + bawaan
   const SETTINGS = "vocabLab.settings.v1";
   let settings = ls.get(SETTINGS, {});
   if (!settings || typeof settings !== "object") settings = {};
-  const source = () => (settings.source === "all" || !custom.length) ? "all" : "mine";
+  // Default: hanya kata saya. Kata contoh bawaan ikut hanya kalau dinyalakan.
+  const source = () => settings.examples === true ? "all" : "mine";
   const pool = () => source() === "mine" ? custom.slice() : fams();
   const poolIds = () => new Set(pool().map(f => f.id));
   const poolForms = () => pool().flatMap(f => f.forms.map(x => ({ ...x, fam: f.id })));
@@ -372,7 +375,6 @@
     const ids = new Set(P.map(f => f.id));
     [...picked].forEach(id => { if (!ids.has(id)) picked.delete(id); });
     P.forEach(f => { if (!pickedKnown.has(f.id)) { pickedKnown.add(f.id); if (src === "mine") picked.add(f.id); } });
-    roundSize = Math.max(1, Math.min(roundSize, P.length || 1));
   }
   function chosenWords() {
     return roundPick === "manual" ? pool().filter(f => picked.has(f.id)) : pickWords(Math.min(roundSize, pool().length));
@@ -429,7 +431,13 @@
   function renderStart(host) {
     ensurePick();
     const P = pool();
+    if (!P.length) {
+      host.innerHTML = `<h2 class="vtitle">Ronde terpandu</h2><p class="vsub">Satu ronde melatih kata pilihanmu lewat 6 langkah berurutan.</p>${sourceBar()}${emptyState()}`;
+      bindSource(() => renderStart(host)); bindEmpty(host, () => renderStart(host));
+      return;
+    }
     const count = () => roundPick === "manual" ? picked.size : Math.min(roundSize, P.length);
+    const shownSize = Math.max(1, Math.min(roundSize, P.length));
     host.innerHTML = `
       <h2 class="vtitle">Ronde terpandu</h2>
       <p class="vsub">Satu ronde melatih kata pilihanmu lewat 6 langkah berurutan, dari mengenali bentuknya sampai memakainya di kalimat.</p>
@@ -450,7 +458,7 @@
           </div>` : `
           <div class="row between wrap">
             <div><div class="rt">Jumlah kata</div><div class="rd">Diambil acak dari ${P.length} kata. Yang belum dikuasai lebih sering terpilih.</div></div>
-            <div class="numbox"><button type="button" class="btn small" id="nMinus" aria-label="Kurangi">−</button><input type="number" id="nInput" min="1" max="${P.length}" value="${roundSize}" inputmode="numeric"><button type="button" class="btn small" id="nPlus" aria-label="Tambah">+</button></div>
+            <div class="numbox"><button type="button" class="btn small" id="nMinus" aria-label="Kurangi">−</button><input type="number" id="nInput" min="1" max="${P.length}" value="${shownSize}" inputmode="numeric"><button type="button" class="btn small" id="nPlus" aria-label="Tambah">+</button></div>
           </div>`}
       </div>
       <div class="actions"><span class="keys" id="pickInfo"></span><button type="button" class="btn primary big" id="startBtn">Mulai ronde</button></div>
@@ -475,8 +483,8 @@
       const setN = v => { roundSize = Math.max(1, Math.min(P.length, Math.round(+v) || 1)); inp.value = roundSize; refresh(); };
       inp.onchange = () => setN(inp.value);
       inp.oninput = () => { if (inp.value !== "") setN(inp.value); };
-      $("nMinus").onclick = () => setN(roundSize - 1);
-      $("nPlus").onclick = () => setN(roundSize + 1);
+      $("nMinus").onclick = () => setN(Math.min(roundSize, P.length) - 1);
+      $("nPlus").onclick = () => setN(Math.min(roundSize, P.length) + 1);
     }
     $("startBtn").onclick = startRound;
     refresh();
@@ -484,18 +492,27 @@
 
   // ---------- pemilih sumber kata (dipakai di beberapa halaman) ----------
   function sourceBar() {
-    const has = custom.length > 0;
+    const ex = examples().length;
     return `<div class="srcbar"><span class="srclabel">Sumber kata</span>
       <div class="seg" id="srcSeg">
-        <button type="button" data-s="mine" class="${source() === "mine" ? "active" : ""}"${has ? "" : " disabled"}>Kata saya (${custom.length})</button>
-        <button type="button" data-s="all" class="${source() === "all" ? "active" : ""}">Semua (${fams().length})</button>
+        <button type="button" data-s="mine" class="${source() === "mine" ? "active" : ""}">Kata saya (${custom.length})</button>
+        <button type="button" data-s="all" class="${source() === "all" ? "active" : ""}">+ ${ex} kata contoh</button>
       </div>
-      <span class="rd">${has ? (source() === "mine" ? "Hanya kata yang kamu masukkan." : "Kata saya + daftar bawaan.") : "Belum ada kata saya, jadi memakai daftar bawaan."}</span></div>`;
+      <span class="rd">${source() === "mine" ? "Hanya kata yang kamu masukkan." : `Kata saya ditambah ${ex} kata contoh bawaan.`}</span></div>`;
+  }
+  function emptyState() {
+    return `<div class="group pad empty"><div class="rt">Belum ada kata saya</div>
+      <div class="rd">Tambahkan kata di menu Kata saya, atau pakai ${examples().length} kata contoh dulu untuk mencoba.</div>
+      <div class="btns"><button type="button" class="btn primary" data-goto="words">Tambah kata</button><button type="button" class="btn" data-use-examples>Pakai kata contoh</button></div></div>`;
+  }
+  function bindEmpty(host, rerender) {
+    host.querySelectorAll("[data-goto]").forEach(b => b.onclick = () => show(b.dataset.goto));
+    host.querySelectorAll("[data-use-examples]").forEach(b => b.onclick = () => { settings.examples = true; ls.set(SETTINGS, settings); updateBadge(); rerender(); });
   }
   function bindSource(rerender) {
-    document.querySelectorAll("#srcSeg button").forEach(b => b.onclick = () => {
+    document.querySelectorAll("section:not([hidden]) #srcSeg button").forEach(b => b.onclick = () => {
       if (b.disabled) return;
-      settings.source = b.dataset.s;
+      settings.examples = b.dataset.s === "all";
       ls.set(SETTINGS, settings);
       updateBadge();
       rerender();
@@ -549,6 +566,7 @@
     nextFree();
   }
   function nextFree() {
+    if (!pool().length) { $("freeStage").innerHTML = emptyState(); bindEmpty($("view-free"), renderFree); return; }
     const list = candidates(freeMode);
     if (!list.length) {
       const why = freeMode === "rel" ? "Belum ada kata dengan sinonim/antonim di sumber kata ini."
@@ -598,7 +616,8 @@
   const AI_PROMPT = [
     "Ubah daftar kata bahasa Inggris di bawah ini ke format Vocab Lab. Ikuti aturan ini persis:",
     "",
-    "1. Satu kata = satu blok. Pisahkan antarblok dengan satu baris kosong.",
+    "1. Setiap kata di daftarku menjadi satu blok sendiri, termasuk kata yang mirip, kata yang sudah umum, atau kata yang termasuk keluarga kata lain di daftar. Jangan menggabungkan dua kata ke satu blok dan jangan melewatkan satu kata pun. Jumlah blok harus sama dengan jumlah kata di daftarku.",
+    "   Pisahkan antarblok dengan tepat satu baris kosong.",
     "2. Di setiap blok, baris pertama adalah kata utama. Tambahkan bentuk lain yang umum dipakai (word family), satu per baris, dengan format:",
     "   kata (jenis) = arti dalam bahasa Indonesia",
     "   Jenis hanya boleh: n, v, adj, adv.",
@@ -610,7 +629,9 @@
     "   antonim: kata = arti",
     "4. Tulis baris \"pecah\" hanya kalau kata itu benar-benar punya prefix, root, atau suffix yang jelas. Jangan dipaksakan.",
     "5. Jawaban kalimat harus salah satu bentuk kata di blok itu. Buat kalimat bergaya teks akademik seperti soal UTBK Literasi Bahasa Inggris.",
-    "6. Jangan tambahkan penomoran, simbol markdown, judul, atau penjelasan lain di luar format.",
+    "6. Kalau satu kata punya dua jenis dengan bentuk sama (misalnya petition sebagai n dan v), tulis dua baris di blok yang sama.",
+    "7. Jangan tambahkan penomoran, simbol markdown, judul, atau penjelasan lain di luar format.",
+    "8. Setelah selesai, periksa lagi: apakah jumlah blok sama dengan jumlah kata di daftarku? Kalau belum, perbaiki sebelum menjawab.",
     "",
     "Contoh satu blok:",
     EXAMPLE.split("\n\n")[0],
@@ -640,7 +661,15 @@
       else if (!c.startsWith("#")) cur.push(c);
     });
     if (cur.length) blocks.push(cur);
-    return blocks.map(parseBlock);
+    const res = blocks.map(parseBlock), seen = new Map();
+    res.forEach(r => {
+      if (!r.fam) return;
+      if (seen.has(r.fam.id)) {
+        r.errs.push(`"${r.title}" sudah ada di blok lain di daftar ini, jadi hanya satu yang disimpan`);
+        r.fam = null;
+      } else seen.set(r.fam.id, r);
+    });
+    return res;
   }
   function parseBlock(lines) {
     const forms = [], errs = [], notes = [];
@@ -699,15 +728,19 @@
       else if (!ansF) errs.push(sentRaw.answer ? `jawaban "${sentRaw.answer}" tidak ada di bentuk kata blok ini` : "kalimat belum punya jawaban, tambahkan = jawaban di akhir");
       else sentence = { text: sentRaw.text, answer: ansF.w, why };
     }
-    const main = forms[0].w;
+    const main = forms[0].w, ml = main.toLowerCase();
+    forms.slice(1).forEach(f => {
+      const w = f.w.toLowerCase();
+      if (w.slice(0, 2) !== ml.slice(0, 2) && !w.includes(ml.slice(0, 4)) && !ml.includes(w.slice(0, 4))) {
+        notes.push(`"${f.w}" sepertinya kata lain, bukan bentuk dari "${main}". Kalau memang kata lain, pisahkan dengan baris kosong supaya tersimpan sendiri.`);
+      }
+    });
     return {
       title: main, raw, errs, notes,
       fam: errs.length ? null : { id: "u:" + main.toLowerCase(), custom: true, forms, focus: main, parts, sentence, synonyms, antonyms }
     };
   }
   function statusOf(fam) {
-    const m = fam.focus.toLowerCase();
-    if (FAMILIES.some(f => f.forms.some(x => x.w.toLowerCase() === m))) return "builtin";
     return custom.some(f => f.id === fam.id) ? "update" : "new";
   }
   async function copyText(text, btn) {
@@ -816,12 +849,12 @@
     }
     if (!pastePreview.length) { box.innerHTML = `<div class="fsec"><span class="fmsg no">Kotaknya masih kosong.</span></div>`; return; }
     const res = pastePreview;
-    const ready = res.filter(r => r.fam && statusOf(r.fam) !== "builtin");
+    const ready = res.filter(r => r.fam);
     const bad = res.filter(r => !r.fam).length;
     const LBL = { new: "baru", update: "perbarui", builtin: "sudah ada (bawaan)", error: "perlu diperbaiki" };
     box.innerHTML = `
       <div class="fsec">
-        <div class="fhead"><b>Hasil pemeriksaan</b><span>${res.length} blok · ${ready.length} siap disimpan${bad ? ` · ${bad} perlu diperbaiki` : ""}</span></div>
+        <div class="fhead"><b>Hasil pemeriksaan</b><span>${res.length} kata terbaca · ${ready.length} siap disimpan${bad ? ` · ${bad} perlu diperbaiki` : ""}. Cocokkan jumlahnya dengan daftar aslimu.</span></div>
         <div class="plist">${res.map(r => {
           const st = r.fam ? statusOf(r.fam) : "error";
           const info = r.fam ? [`${r.fam.forms.length} bentuk`, r.fam.parts && "pecah", r.fam.sentence && "kalimat", r.fam.synonyms.length && "sinonim", r.fam.antonyms.length && "antonim"].filter(Boolean).join(" · ") : "";
@@ -846,7 +879,7 @@
       if (!saveCustom()) { custom = before; pasteMsg = "Gagal menyimpan: penyimpanan browser tidak tersedia."; pastePreview = null; renderPreview(); return; }
       pasteText = res.filter(r => !r.fam).map(r => r.raw).join("\n\n");
       pastePreview = null;
-      pasteMsg = `${ready.length} kata tersimpan dan langsung ikut latihan.${bad ? ` ${bad} blok yang perlu diperbaiki masih di kotak.` : ""}`;
+      pasteMsg = `${ready.length} dari ${res.length} kata tersimpan. Total kata saya sekarang ${custom.length}.${bad ? ` ${bad} blok yang perlu diperbaiki masih di kotak.` : ""}`;
       updateBadge();
       renderWords();
     };
@@ -961,7 +994,7 @@
     if (new Set(keys).size !== keys.length) return { err: "Ada bentuk kata dengan jenis yang sama ditulis dua kali." };
     const main = used[0].w;
     const id = editingId || "u:" + main.toLowerCase();
-    if (!editingId && fams().some(f => f.id === id || f.forms.some(x => x.w.toLowerCase() === main.toLowerCase()))) {
+    if (!editingId && custom.some(f => f.id === id || f.forms.some(x => x.w.toLowerCase() === main.toLowerCase()))) {
       return { err: `"${main}" sudah ada di daftar kata.` };
     }
 
@@ -1077,7 +1110,6 @@
       list.forEach(raw => {
         const n = normalize(raw);
         if (!n) { skipped++; return; }
-        if (statusOf(n) === "builtin") { skipped++; return; }
         const i = custom.findIndex(f => f.id === n.id);
         if (i >= 0) { custom[i] = n; updated++; } else { custom.push(n); added++; }
       });
@@ -1095,6 +1127,11 @@
   function renderProgress() {
     const host = $("view-progress");
     const F = pool(), N = F.length, mastered = F.filter(isMastered).length;
+    if (!N) {
+      host.innerHTML = `<h2 class="vtitle">Progres</h2>${sourceBar()}${emptyState()}`;
+      bindSource(renderProgress); bindEmpty(host, renderProgress);
+      return;
+    }
     const pts = F.reduce((t, f) => t + Math.min(famCorrect(f.id), MASTER), 0);
     const pct = N ? Math.round(100 * pts / (N * MASTER)) : 0;
     let right = 0, wrong = 0;
@@ -1125,6 +1162,7 @@
   const VIEWS = ["round", "free", "words", "progress"];
   function updateBadge() {
     const F = pool();
+    if (!F.length) { $("badge").textContent = "Belum ada kata"; return; }
     $("badge").textContent = `${F.filter(isMastered).length}/${F.length} kata dikuasai`;
   }
   function show(v) {
