@@ -31,6 +31,15 @@
 
   const fams = () => FAMILIES.concat(custom);
   const allForms = () => fams().flatMap(f => f.forms.map(x => ({ ...x, fam: f.id })));
+
+  // Sumber kata: "mine" = hanya kata saya, "all" = kata saya + bawaan
+  const SETTINGS = "vocabLab.settings.v1";
+  let settings = ls.get(SETTINGS, {});
+  if (!settings || typeof settings !== "object") settings = {};
+  const source = () => (settings.source === "all" || !custom.length) ? "all" : "mine";
+  const pool = () => source() === "mine" ? custom.slice() : fams();
+  const poolIds = () => new Set(pool().map(f => f.id));
+  const poolForms = () => pool().flatMap(f => f.forms.map(x => ({ ...x, fam: f.id })));
   const focusOf = f => f.focus || f.forms[0].w;
   const focusArti = f => (f.forms.find(x => x.w === focusOf(f)) || f.forms[0]).arti;
   const syns = f => f.synonyms || [];
@@ -66,10 +75,13 @@
   //  PEMBUAT SOAL
   // =====================================================
   function qPos(form) {
-    const others = allForms().filter(f => f.pos !== form.pos);
-    const pool = shuffle(others.filter(f => f.fam === form.fam)).concat(shuffle(others.filter(f => f.fam !== form.fam)));
+    const samePos = new Set(allForms().filter(f => f.pos === form.pos).map(f => f.w.toLowerCase()));
+    const ok = f => f.pos !== form.pos && !samePos.has(f.w.toLowerCase()) && f.w !== form.w;
+    const inPool = poolForms().filter(ok);
+    let cands = shuffle(inPool.filter(f => f.fam === form.fam)).concat(shuffle(inPool.filter(f => f.fam !== form.fam)));
+    if (!cands.length) cands = shuffle(allForms().filter(ok)).slice(0, 1); // cadangan kalau kata sesi ini terlalu sedikit
     const picks = [];
-    for (const f of pool) { if (picks.length >= 3) break; if (!picks.some(p => p.w === f.w) && f.w !== form.w) picks.push(f); }
+    for (const f of cands) { if (picks.length >= 3) break; if (!picks.some(p => p.w === f.w)) picks.push(f); }
     const opts = shuffle([form, ...picks]);
     const hint = suffixHint(form.w, form.pos);
     const art = /^[aeiou]/.test(form.pos) ? "an" : "a";
@@ -89,14 +101,17 @@
     // kata yang cuma punya 1 bentuk: pengecoh diambil dari kata lain dengan jenis yang sama
     const opts = fam.forms.slice();
     if (opts.length < 2) {
-      const extra = shuffle(allForms().filter(f => f.fam !== fam.id && f.pos === ans.pos && !opts.some(o => o.w.toLowerCase() === f.w.toLowerCase())));
-      while (opts.length < 4 && extra.length) opts.push(extra.pop());
+      const okf = f => f.fam !== fam.id && !opts.some(o => o.w.toLowerCase() === f.w.toLowerCase());
+      let extra = shuffle(poolForms().filter(f => okf(f) && f.pos === ans.pos));
+      if (extra.length < 3) extra = extra.concat(shuffle(poolForms().filter(f => okf(f) && f.pos !== ans.pos)));
+      if (!extra.length) extra = shuffle(allForms().filter(f => okf(f) && f.pos === ans.pos)).slice(0, 1);
+      for (const x of extra) { if (opts.length >= 4) break; if (!opts.some(o => o.w.toLowerCase() === x.w.toLowerCase())) opts.push(x); }
     }
     return {
       tag: "Isi kalimat",
       prompt: esc(s.text).replace("___", '<span class="blank">______</span>'),
       sub: "Pilih bentuk kata yang tepat.",
-      options: shuffle(opts).map(f => ({ label: f.w, correct: f.w === s.answer })),
+      options: shuffle(opts.filter((f, i) => opts.findIndex(o => o.w.toLowerCase() === f.w.toLowerCase()) === i)).map(f => ({ label: f.w, correct: f.w === s.answer })),
       explain: `${s.why ? esc(s.why) + " " : ""}Jawaban: <b>${esc(ans.w)}</b> (${ans.pos}, ${esc(ans.arti)}).` +
         `<ul>${opts.filter(f => f.w !== ans.w).map(f => `<li>${esc(f.w)} = ${f.pos}${f.fam !== undefined ? ` (${esc(f.arti)})` : ""}</li>`).join("")}</ul>`
     };
@@ -132,9 +147,11 @@
     const p = fam.parts;
     const form = fam.forms.find(f => f.w === p.w);
     const picks = [];
-    for (const o of shuffle(allForms().filter(f => f.fam !== fam.id))) {
+    let src = shuffle(poolForms().filter(f => f.fam !== fam.id && f.arti !== form.arti));
+    if (!src.length) src = shuffle(allForms().filter(f => f.fam !== fam.id && f.arti !== form.arti)).slice(0, 1);
+    for (const o of src) {
       if (picks.length >= 3) break;
-      if (o.arti !== form.arti && !picks.includes(o.arti)) picks.push(o.arti);
+      if (!picks.includes(o.arti)) picks.push(o.arti);
     }
     return {
       tag: "Pecah kata",
@@ -151,12 +168,13 @@
     const ans = rand(list);
     const exclude = new Set([...syns(fam), ...ants(fam)].map(x => x.w.toLowerCase()).concat(fam.forms.map(f => f.w.toLowerCase())));
     const picks = [];
-    for (const f of shuffle(fams())) {
-      if (picks.length >= 3) break;
+    const tryAdd = f => {
       const w = focusOf(f);
-      if (f.id === fam.id || exclude.has(w.toLowerCase()) || picks.some(p => p.w === w)) continue;
+      if (f.id === fam.id || exclude.has(w.toLowerCase()) || picks.some(p => p.w === w)) return;
       picks.push({ w, arti: focusArti(f) });
-    }
+    };
+    for (const f of shuffle(pool())) { if (picks.length >= 3) break; tryAdd(f); }
+    if (!picks.length) for (const f of shuffle(fams())) { if (picks.length) break; tryAdd(f); }
     const label = kind === "syn" ? "Sinonim" : "Antonim";
     const fw = focusOf(fam);
     return {
@@ -170,20 +188,34 @@
   }
 
   const C = {
-    pos: f => ({ key: "pos:" + f.w, fam: f.fam, make: () => qPos(f) }),
+    pos: f => ({ key: "pos:" + f.w + (fams().some(x => x.id === f.fam && x.forms.filter(y => y.w === f.w).length > 1) ? "|" + f.pos : ""), fam: f.fam, make: () => qPos(f) }),
     fill: f => ({ key: "fill:" + f.id, fam: f.id, make: () => qFill(f) }),
     affix: (k, a) => ({ key: "affix:" + a.form, fam: null, make: () => qAffix(k, a) }),
     parts: f => ({ key: "parts:" + f.id, fam: f.id, make: () => qParts(f) }),
     rel: (f, kind) => ({ key: kind + ":" + f.id, fam: f.id, make: () => qRel(f, kind) })
   };
 
+  function relatedAffixes(families) {
+    const seen = new Set(), out = [];
+    families.filter(hasParts).forEach(f => f.parts.list.forEach(([p]) => {
+      const m = affixFor(p);
+      if (m && !seen.has(m.item.form)) { seen.add(m.item.form); out.push(m); }
+    }));
+    return out;
+  }
+  const allAffixes = () => ["prefix", "root", "suffix"].flatMap(k => AFFIXES[k].map(item => ({ kind: k, item })));
+
   function candidates(mode) {
-    const c = [], want = m => mode === "mix" || mode === m;
-    if (want("pos")) allForms().forEach(f => c.push(C.pos(f)));
-    if (want("fill")) fams().filter(hasSentence).forEach(f => c.push(C.fill(f)));
-    if (want("affix")) ["prefix", "root", "suffix"].forEach(k => AFFIXES[k].forEach(a => c.push(C.affix(k, a))));
-    if (want("parts")) fams().filter(hasParts).forEach(f => c.push(C.parts(f)));
-    if (want("rel")) fams().forEach(f => {
+    const P = pool(), c = [], want = m => mode === "mix" || mode === m;
+    if (want("pos")) P.forEach(f => f.forms.forEach(x => c.push(C.pos({ ...x, fam: f.id }))));
+    if (want("fill")) P.filter(hasSentence).forEach(f => c.push(C.fill(f)));
+    if (want("affix")) {
+      let af = source() === "mine" ? relatedAffixes(P) : allAffixes();
+      if (!af.length && mode === "affix") af = allAffixes();
+      af.forEach(m => c.push(C.affix(m.kind, m.item)));
+    }
+    if (want("parts")) P.filter(hasParts).forEach(f => c.push(C.parts(f)));
+    if (want("rel")) P.forEach(f => {
       if (mode === "mix" && !isMastered(f)) return;
       if (syns(f).length) c.push(C.rel(f, "syn"));
       if (ants(f).length) c.push(C.rel(f, "ant"));
@@ -278,10 +310,12 @@
     { id: "fill", title: "Isi kalimat", desc: "Pilih bentuk kata yang pas di dalam kalimat." },
     { id: "rel", title: "Sinonim & antonim", desc: "Ulangi kata yang sudah dikuasai lewat padanan dan lawan kata. Dilewati kalau belum ada." }
   ];
-  let roundSize = 3, round = null;
+  let roundSize = 5, round = null;
+  let roundPick = "manual", picked = null, pickedSrc = null, pickedKnown = new Set();
 
+  const pool_ = () => pool();
   function pickWords(n) {
-    const pool = fams().slice(), out = [];
+    const pool = shuffle(pool_()), out = [];
     while (out.length < n && pool.length) {
       const w = pool.map(f => isMastered(f) ? 0.25 : 1.6 - 0.35 * Math.min(famCorrect(f.id), MASTER));
       let r = Math.random() * w.reduce((a, b) => a + b, 0), i = 0;
@@ -292,8 +326,8 @@
     return out;
   }
 
-  function buildRound(n) {
-    const words = pickWords(n);
+  function buildRound(words) {
+    const n = words.length;
     const items = { intro: [{ intro: true }], affix: [], parts: [], pos: [], fill: [], rel: [] };
 
     const seen = new Set();
@@ -301,7 +335,7 @@
       const m = affixFor(p);
       if (m && !seen.has(m.item.form)) { seen.add(m.item.form); items.affix.push(C.affix(m.kind, m.item)); }
     }));
-    items.affix = shuffle(items.affix).slice(0, 4);
+    items.affix = shuffle(items.affix).slice(0, Math.min(8, Math.max(4, n)));
     if (items.affix.length < 2) {
       const extra = shuffle(["prefix", "root", "suffix"].flatMap(k => AFFIXES[k].map(item => ({ kind: k, item })))).filter(x => !seen.has(x.item.form));
       while (items.affix.length < 2 && extra.length) { const x = extra.pop(); items.affix.push(C.affix(x.kind, x.item)); }
@@ -311,7 +345,7 @@
     items.pos = words.map(f => C.pos({ ...rand(f.forms), fam: f.id }));
     items.fill = words.filter(hasSentence).map(C.fill);
 
-    const mastered = shuffle(fams().filter(f => isMastered(f) && (syns(f).length || ants(f).length)));
+    const mastered = shuffle(pool().filter(f => isMastered(f) && (syns(f).length || ants(f).length)));
     mastered.sort((a, b) => (words.includes(b) ? 1 : 0) - (words.includes(a) ? 1 : 0));
     items.rel = mastered.slice(0, n).map(f => {
       const kinds = [];
@@ -327,7 +361,28 @@
     while (round.si < round.steps.length && round.steps[round.si].items.length === 0) round.si++;
     if (round.si >= round.steps.length) round.phase = "summary";
   }
-  function startRound() { round = buildRound(roundSize); skipEmpty(); renderRound(); window.scrollTo(0, 0); }
+  function ensurePick() {
+    const P = pool(), src = source();
+    if (!picked || pickedSrc !== src) {
+      pickedSrc = src;
+      picked = new Set(src === "mine" ? P.map(f => f.id) : []);
+      pickedKnown = new Set(P.map(f => f.id));
+      roundPick = src === "mine" ? "manual" : "random";
+    }
+    const ids = new Set(P.map(f => f.id));
+    [...picked].forEach(id => { if (!ids.has(id)) picked.delete(id); });
+    P.forEach(f => { if (!pickedKnown.has(f.id)) { pickedKnown.add(f.id); if (src === "mine") picked.add(f.id); } });
+    roundSize = Math.max(1, Math.min(roundSize, P.length || 1));
+  }
+  function chosenWords() {
+    return roundPick === "manual" ? pool().filter(f => picked.has(f.id)) : pickWords(Math.min(roundSize, pool().length));
+  }
+  function startRound() {
+    ensurePick();
+    const words = chosenWords();
+    if (!words.length) return;
+    round = buildRound(words); skipEmpty(); renderRound(); window.scrollTo(0, 0);
+  }
   function advance() {
     round.answered = false;
     round.qi++;
@@ -372,19 +427,79 @@
   }
 
   function renderStart(host) {
+    ensurePick();
+    const P = pool();
+    const count = () => roundPick === "manual" ? picked.size : Math.min(roundSize, P.length);
     host.innerHTML = `
       <h2 class="vtitle">Ronde terpandu</h2>
-      <p class="vsub">Satu ronde melatih beberapa kata lewat 6 langkah berurutan, dari mengenali bentuknya sampai memakainya di kalimat.</p>
-      <div class="glabel">Urutan langkah</div>
-      <div class="group">${STEPS.map((s, i) => `<div class="row"><span class="stepno">${i + 1}</span><div><div class="rt">${esc(s.title)}</div><div class="rd">${esc(s.desc)}</div></div></div>`).join("")}</div>
-      <div class="glabel">Pengaturan</div>
-      <div class="group"><div class="row between wrap">
-        <div><div class="rt">Jumlah kata per ronde</div><div class="rd">Kata yang belum dikuasai lebih sering terpilih.</div></div>
-        <div class="seg" id="sizeSeg">${[3, 4, 5].map(n => `<button type="button" data-n="${n}" class="${n === roundSize ? "active" : ""}">${n} kata</button>`).join("")}</div>
-      </div></div>
-      <div class="actions"><button type="button" class="btn primary big" id="startBtn">Mulai ronde</button></div>`;
-    host.querySelectorAll("#sizeSeg button").forEach(b => b.onclick = () => { roundSize = +b.dataset.n; renderStart(host); });
+      <p class="vsub">Satu ronde melatih kata pilihanmu lewat 6 langkah berurutan, dari mengenali bentuknya sampai memakainya di kalimat.</p>
+      ${sourceBar()}
+      <div class="glabel">Kata untuk ronde ini</div>
+      <div class="group">
+        <div class="row between wrap">
+          <div class="seg" id="pickSeg">
+            <button type="button" data-p="manual" class="${roundPick === "manual" ? "active" : ""}">Pilih sendiri</button>
+            <button type="button" data-p="random" class="${roundPick === "random" ? "active" : ""}">Acak</button>
+          </div>
+          ${roundPick === "manual" ? `<div class="btns"><button type="button" class="btn small" id="pickAll">Pilih semua</button><button type="button" class="btn small" id="pickNone">Kosongkan</button></div>` : ""}
+        </div>
+        ${roundPick === "manual" ? `
+          <div class="checklist">${P.map(f => `
+            <label class="crow"><input type="checkbox" data-id="${esc(f.id)}"${picked.has(f.id) ? " checked" : ""}>
+              <span class="fw">${esc(focusOf(f))}</span><span class="muted cl-arti">${esc(focusArti(f))}</span>${boxes(f)}</label>`).join("")}
+          </div>` : `
+          <div class="row between wrap">
+            <div><div class="rt">Jumlah kata</div><div class="rd">Diambil acak dari ${P.length} kata. Yang belum dikuasai lebih sering terpilih.</div></div>
+            <div class="numbox"><button type="button" class="btn small" id="nMinus" aria-label="Kurangi">−</button><input type="number" id="nInput" min="1" max="${P.length}" value="${roundSize}" inputmode="numeric"><button type="button" class="btn small" id="nPlus" aria-label="Tambah">+</button></div>
+          </div>`}
+      </div>
+      <div class="actions"><span class="keys" id="pickInfo"></span><button type="button" class="btn primary big" id="startBtn">Mulai ronde</button></div>
+      <details class="group det steps-det"><summary>Lihat urutan 6 langkah</summary>
+        ${STEPS.map((s, i) => `<div class="row"><span class="stepno">${i + 1}</span><div><div class="rt">${esc(s.title)}</div><div class="rd">${esc(s.desc)}</div></div></div>`).join("")}
+      </details>`;
+
+    const refresh = () => {
+      const n = count();
+      $("startBtn").disabled = n === 0;
+      $("startBtn").textContent = n ? `Mulai ronde · ${n} kata` : "Pilih kata dulu";
+      $("pickInfo").textContent = n > 12 ? "Ronde panjang: tahap Kenalan akan berisi banyak kata." : "";
+    };
+    bindSource(() => renderStart(host));
+    host.querySelectorAll("#pickSeg button").forEach(b => b.onclick = () => { roundPick = b.dataset.p; renderStart(host); });
+    if (roundPick === "manual") {
+      host.querySelectorAll(".crow input").forEach(cb => cb.onchange = () => { cb.checked ? picked.add(cb.dataset.id) : picked.delete(cb.dataset.id); refresh(); });
+      $("pickAll").onclick = () => { P.forEach(f => picked.add(f.id)); renderStart(host); };
+      $("pickNone").onclick = () => { picked.clear(); renderStart(host); };
+    } else {
+      const inp = $("nInput");
+      const setN = v => { roundSize = Math.max(1, Math.min(P.length, Math.round(+v) || 1)); inp.value = roundSize; refresh(); };
+      inp.onchange = () => setN(inp.value);
+      inp.oninput = () => { if (inp.value !== "") setN(inp.value); };
+      $("nMinus").onclick = () => setN(roundSize - 1);
+      $("nPlus").onclick = () => setN(roundSize + 1);
+    }
     $("startBtn").onclick = startRound;
+    refresh();
+  }
+
+  // ---------- pemilih sumber kata (dipakai di beberapa halaman) ----------
+  function sourceBar() {
+    const has = custom.length > 0;
+    return `<div class="srcbar"><span class="srclabel">Sumber kata</span>
+      <div class="seg" id="srcSeg">
+        <button type="button" data-s="mine" class="${source() === "mine" ? "active" : ""}"${has ? "" : " disabled"}>Kata saya (${custom.length})</button>
+        <button type="button" data-s="all" class="${source() === "all" ? "active" : ""}">Semua (${fams().length})</button>
+      </div>
+      <span class="rd">${has ? (source() === "mine" ? "Hanya kata yang kamu masukkan." : "Kata saya + daftar bawaan.") : "Belum ada kata saya, jadi memakai daftar bawaan."}</span></div>`;
+  }
+  function bindSource(rerender) {
+    document.querySelectorAll("#srcSeg button").forEach(b => b.onclick = () => {
+      if (b.disabled) return;
+      settings.source = b.dataset.s;
+      ls.set(SETTINGS, settings);
+      updateBadge();
+      rerender();
+    });
   }
 
   function wordCard(f) {
@@ -425,15 +540,24 @@
     host.innerHTML = `
       <h2 class="vtitle">Latihan bebas</h2>
       <p class="vsub">Soal acak tanpa urutan. Cocok untuk pemanasan atau mengulang satu jenis soal saja.</p>
+      ${sourceBar()}
       <div class="toolbar"><div class="seg" id="modeSeg">${MODES.map(([m, l]) => `<button type="button" data-m="${m}" class="${m === freeMode ? "active" : ""}">${l}</button>`).join("")}</div><span class="muted" id="freeScore">Benar ${freeScore.r}/${freeScore.t}</span></div>
       ${freeMode === "rel" ? `<div class="note">Saran: kuasai dulu katanya. Di Campur dan Ronde, sinonim/antonim baru muncul setelah sebuah kata dijawab benar 3 kali, supaya tidak tertukar.</div>` : ""}
       <div id="freeStage"></div>`;
     host.querySelectorAll("#modeSeg button").forEach(b => b.onclick = () => { freeMode = b.dataset.m; freeLast = null; renderFree(); });
+    bindSource(() => { freeLast = null; renderFree(); });
     nextFree();
   }
   function nextFree() {
     const list = candidates(freeMode);
-    if (!list.length) { $("freeStage").innerHTML = `<div class="group pad muted">Belum ada soal untuk jenis ini.</div>`; return; }
+    if (!list.length) {
+      const why = freeMode === "rel" ? "Belum ada kata dengan sinonim/antonim di sumber kata ini."
+        : freeMode === "fill" ? "Belum ada kata dengan kalimat rumpang di sumber kata ini."
+        : freeMode === "parts" ? "Belum ada kata dengan baris pecah di sumber kata ini."
+        : "Belum ada soal untuk jenis ini.";
+      $("freeStage").innerHTML = `<div class="group pad muted">${why}</div>`;
+      return;
+    }
     const cand = pickWeighted(list, freeLast);
     freeLast = cand.key;
     mountQuiz($("freeStage"), cand, {
@@ -553,7 +677,7 @@
         if (pos) notes.push(`jenis "${w}" ditebak dari akhirannya: ${pos}. Cek lagi, ya.`);
         else { errs.push(`jenis kata "${w}" belum ditulis, contoh: ${w} (n) = ${arti}`); continue; }
       }
-      if (forms.some(f => f.w.toLowerCase() === w.toLowerCase())) { errs.push(`"${w}" ditulis dua kali`); continue; }
+      if (forms.some(f => f.w.toLowerCase() === w.toLowerCase() && f.pos === pos)) { errs.push(`"${w} (${pos})" ditulis dua kali`); continue; }
       forms.push({ w, pos, arti });
     }
     const raw = lines.join("\n");
@@ -612,7 +736,7 @@
       </div></div>
       <div id="wtabBody"></div>
 
-      <div class="glabel">Daftar kata saya (${custom.length})</div>
+      <div class="glabel between"><span>Daftar kata saya (${custom.length})</span>${custom.length ? '<button type="button" class="btn small danger" id="delAll">Hapus semua</button>' : ""}</div>
       <div class="group">${custom.length ? custom.map(f => `
         <div class="row between">
           <div class="minw"><span class="fw">${esc(focusOf(f))}</span> <span class="muted">· ${f.forms.length} bentuk · ${esc(focusArti(f))}</span></div>
@@ -628,6 +752,7 @@
     host.querySelectorAll("#wtab button").forEach(b => b.onclick = () => { wordsTab = b.dataset.t; if (wordsTab === "paste") editingId = null; renderWords(); });
     host.querySelectorAll("[data-edit]").forEach(b => b.onclick = () => { editingId = b.dataset.edit; wordsTab = "form"; renderWords(); window.scrollTo(0, 0); });
     host.querySelectorAll("[data-del]").forEach(b => b.onclick = () => deleteWord(b.dataset.del));
+    if ($("delAll")) $("delAll").onclick = deleteAll;
     $("expBtn").onclick = exportWords;
     $("impBtn").onclick = () => $("impFile").click();
     $("impFile").onchange = importWords;
@@ -832,8 +957,8 @@
     const used = rows.filter(r => r.w || r.arti);
     if (used.some(r => !r.w || !r.arti)) return { err: "Setiap bentuk kata harus diisi kata dan artinya." };
     if (!used.length) return { err: "Isi minimal 1 kata." };
-    const lower = used.map(r => r.w.toLowerCase());
-    if (new Set(lower).size !== lower.length) return { err: "Ada bentuk kata yang ditulis dua kali." };
+    const keys = used.map(r => r.w.toLowerCase() + "|" + r.pos);
+    if (new Set(keys).size !== keys.length) return { err: "Ada bentuk kata dengan jenis yang sama ditulis dua kali." };
     const main = used[0].w;
     const id = editingId || "u:" + main.toLowerCase();
     if (!editingId && fams().some(f => f.id === id || f.forms.some(x => x.w.toLowerCase() === main.toLowerCase()))) {
@@ -890,6 +1015,21 @@
     custom = custom.filter(x => x.id !== id);
     saveCustom();
     if (editingId === id) editingId = null;
+    updateBadge();
+    renderWords();
+  }
+
+  function deleteAll() {
+    if (!custom.length) return;
+    if (!confirm(`Hapus semua ${custom.length} kata saya beserta progresnya? Ini tidak bisa dibatalkan.\n\nKalau ingin menyimpan cadangan, batalkan dulu lalu klik Ekspor.`)) return;
+    const ids = new Set(custom.map(f => f.id));
+    for (const k in stats) if (ids.has(stats[k].fam)) delete stats[k];
+    saveStats();
+    custom = [];
+    saveCustom();
+    editingId = null; picked = null; round = null;
+    wordsTab = "paste";
+    pasteMsg = "Semua kata saya sudah dihapus. Tempel daftar kata baru di sini.";
     updateBadge();
     renderWords();
   }
@@ -954,13 +1094,14 @@
   // =====================================================
   function renderProgress() {
     const host = $("view-progress");
-    const F = fams(), N = F.length, mastered = F.filter(isMastered).length;
+    const F = pool(), N = F.length, mastered = F.filter(isMastered).length;
     const pts = F.reduce((t, f) => t + Math.min(famCorrect(f.id), MASTER), 0);
     const pct = N ? Math.round(100 * pts / (N * MASTER)) : 0;
     let right = 0, wrong = 0;
     for (const k in stats) { right += stats[k].c; wrong += stats[k].w; }
     host.innerHTML = `
       <h2 class="vtitle">Progres</h2>
+      ${sourceBar()}
       <p class="vsub">Satu kata dianggap dikuasai setelah 3 jawaban benar di soal kata itu (pecah kata, jenis kata, isi kalimat, sinonim/antonim). Soal imbuhan dicatat terpisah.</p>
       <div class="stats3">
         <div class="group stat"><div class="sv">${mastered}<small>/${N}</small></div><div class="sl">kata dikuasai</div></div>
@@ -971,6 +1112,7 @@
       <div class="glabel">Per kata · ■ = 1 jawaban benar</div>
       <div class="group wgrid">${F.map(f => `<div class="wcell ${isMastered(f) ? "done" : ""}"><span class="fw">${esc(focusOf(f))}${f.custom ? ' <span class="tagmine">saya</span>' : ""}</span>${boxes(f)}</div>`).join("")}</div>
       <div class="actions"><button type="button" class="btn danger" id="resetBtn">Reset progres</button></div>`;
+    bindSource(renderProgress);
     $("resetBtn").onclick = () => {
       if (!confirm("Hapus semua progres? Kata saya tidak ikut terhapus.")) return;
       stats = {}; saveStats(); updateBadge(); renderProgress();
@@ -982,12 +1124,12 @@
   // =====================================================
   const VIEWS = ["round", "free", "words", "progress"];
   function updateBadge() {
-    const F = fams();
+    const F = pool();
     $("badge").textContent = `${F.filter(isMastered).length}/${F.length} kata dikuasai`;
   }
   function show(v) {
     activeQuiz = null;
-    VIEWS.forEach(id => { $("view-" + id).hidden = id !== v; });
+    VIEWS.forEach(id => { const el = $("view-" + id); el.hidden = id !== v; if (id !== v) el.innerHTML = ""; });
     document.querySelectorAll("[data-view]").forEach(b => b.classList.toggle("active", b.dataset.view === v));
     if (v === "round") renderRound();
     if (v === "free") renderFree();

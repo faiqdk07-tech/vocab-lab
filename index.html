@@ -262,6 +262,23 @@
   .perr { color: var(--no); font-size: 13px; margin-top: 2px; }
   .pnote { color: #9a5b00; font-size: 13px; margin-top: 2px; }
 
+  .srcbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; padding: 10px 14px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; }
+  .srclabel { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+  .seg button:disabled { opacity: .4; cursor: default; }
+  .glabel.between { display: flex; justify-content: space-between; align-items: center; }
+  .glabel .btn { text-transform: none; letter-spacing: 0; }
+  .checklist { max-height: 420px; overflow-y: auto; border-top: 1px solid var(--line2); }
+  .crow { display: grid; grid-template-columns: 20px auto minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 9px 16px; border-top: 1px solid var(--line2); cursor: pointer; }
+  .crow:first-child { border-top: 0; }
+  .crow:hover { background: #fafafb; }
+  .crow input { width: 18px; height: 18px; margin: 0; padding: 0; accent-color: var(--accent); }
+  .cl-arti { font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .numbox { display: flex; align-items: center; gap: 6px; }
+  .numbox input { width: 72px; text-align: center; font-family: var(--mono); font-weight: 700; }
+  .steps-det { padding: 0; }
+  .steps-det > summary { padding: 11px 16px; color: var(--accent); font-size: 14px; flex-direction: row; }
+  .steps-det[open] > summary { border-bottom: 1px solid var(--line2); }
+
   /* ================= layar kecil ================= */
   @media (max-width: 800px) {
     body { background: var(--bg); }
