@@ -201,10 +201,20 @@
   }
 
   function renderStats() {
+    const N = FAMILIES.length;
     const mastered = FAMILIES.filter(isMastered).length;
-    $("score").textContent = `Sesi ini: ${session.right}/${session.total}`;
-    $("mastery").textContent = `Kata dikuasai: ${mastered}/${FAMILIES.length}`;
-    $("bar").style.width = (100 * mastered / FAMILIES.length) + "%";
+    const pts = FAMILIES.reduce((t, f) => t + Math.min(famCorrect(f.id), MASTER), 0);
+    const pct = Math.round(100 * pts / (N * MASTER));
+    const SEG = 25, filled = Math.round(SEG * pts / (N * MASTER));
+    $("score").textContent = `Sesi ini: ${session.right}/${session.total} benar`;
+    $("mastery").textContent = `Dikuasai: ${mastered}/${N} kata`;
+    $("bar").innerHTML = Array.from({ length: SEG }, (_, i) => `<span class="seg${i < filled ? " on" : ""}"></span>`).join("");
+    $("barLabel").textContent = pct + "%";
+    $("famList").innerHTML = FAMILIES.map(f => {
+      const c = Math.min(famCorrect(f.id), MASTER);
+      const boxes = Array.from({ length: MASTER }, (_, i) => `<i class="${i < c ? "on" : ""}"></i>`).join("");
+      return `<li class="${c >= MASTER ? "done" : ""}"><span>${esc(f.id)}</span><span class="boxes">${boxes}</span></li>`;
+    }).join("");
   }
 
   document.querySelectorAll(".mode").forEach(b => b.onclick = () => {

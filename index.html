@@ -6,112 +6,234 @@
 <title>Vocab Lab</title>
 <style>
   :root {
-    --bg: #f6f4ef; --card: #ffffff; --text: #1f2328; --muted: #6b7076;
-    --line: #e3e0d8; --accent: #2f5d50; --accent-soft: #e4efe9;
-    --ok: #1f7a4d; --ok-soft: #e3f4ea; --no: #b3402f; --no-soft: #fbe9e5;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #15181b; --card: #1e2226; --text: #e8e6e1; --muted: #9aa0a6;
-      --line: #30353a; --accent: #7fc4ac; --accent-soft: #23332d;
-      --ok: #6fd19c; --ok-soft: #1d3327; --no: #f08a78; --no-soft: #3a2421;
-    }
+    --desk: #3a9e9e;
+    --face: #d4d0c8;
+    --light: #ffffff;
+    --mid: #808080;
+    --dark: #404040;
+    --black: #000000;
+    --title-a: #0a246a;
+    --title-b: #3a6ea5;
+    --select: #0a246a;
+    --ok: #d6f5d6;
+    --ok-ink: #006400;
+    --no: #ffd9d2;
+    --no-ink: #a00000;
+    --paper: #ffffff;
+    --ink: #000000;
   }
   * { box-sizing: border-box; }
   body {
-    margin: 0; background: var(--bg); color: var(--text);
-    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    margin: 0;
+    min-height: 100vh;
+    background: var(--desk);
+    color: var(--ink);
+    font: 14px/1.45 Tahoma, Verdana, "Segoe UI", sans-serif;
   }
-  .wrap { max-width: 640px; margin: 0 auto; padding: 20px 16px 48px; }
-  header h1 { margin: 0; font-size: 1.5rem; letter-spacing: -0.01em; }
-  header p { margin: 2px 0 14px; color: var(--muted); font-size: 0.9rem; }
-  .progress { display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--muted); }
-  .track { height: 6px; background: var(--line); border-radius: 99px; margin: 6px 0 16px; overflow: hidden; }
-  #bar { height: 100%; width: 0; background: var(--accent); transition: width .3s; }
-  .modes { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 16px; }
+  .desk { max-width: 720px; margin: 0 auto; padding: 18px 12px 40px; }
+
+  /* ---------- bevel ---------- */
+  .raised {
+    background: var(--face);
+    border: 2px solid; border-color: var(--light) var(--dark) var(--dark) var(--light);
+    box-shadow: inset -1px -1px var(--mid), inset 1px 1px #e8e6e0;
+  }
+  .sunken {
+    background: var(--paper);
+    border: 2px solid; border-color: var(--mid) var(--light) var(--light) var(--mid);
+    box-shadow: inset 1px 1px var(--dark), inset -1px -1px #e8e6e0;
+  }
+
+  /* ---------- jendela ---------- */
+  .window { padding: 3px; margin-bottom: 14px; }
+  .titlebar {
+    display: flex; align-items: center; justify-content: space-between;
+    background: linear-gradient(90deg, var(--title-a), var(--title-b));
+    color: #fff; font-weight: bold; padding: 3px 3px 3px 6px; font-size: 13px;
+  }
+  .titlebar .ctl { display: flex; gap: 2px; }
+  .titlebar .ctl span {
+    width: 18px; height: 16px; display: grid; place-items: center;
+    font: bold 11px/1 Tahoma, sans-serif; color: #000;
+  }
+  .menubar { display: flex; gap: 14px; padding: 4px 6px; font-size: 13px; }
+  .menubar u { text-decoration: underline; }
+  .body { padding: 10px; }
+
+  /* ---------- progres ---------- */
+  .progress-row { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; font-size: 13px; }
+  #bar { flex: 1; display: flex; gap: 2px; padding: 3px; height: 22px; }
+  .seg { flex: 1; background: transparent; }
+  .seg.on { background: var(--select); }
+  #barLabel { width: 42px; text-align: right; font-family: "Courier New", monospace; font-weight: bold; }
+  .hint { font-size: 12px; color: #333; margin: 0 0 12px; }
+
+  /* ---------- tab mode ---------- */
+  .tabs { display: flex; flex-wrap: wrap; gap: 0; padding-left: 2px; position: relative; z-index: 1; }
   .mode {
-    flex: none; border: 1px solid var(--line); background: var(--card); color: var(--text);
-    padding: 7px 14px; border-radius: 99px; font: inherit; font-size: 0.88rem; cursor: pointer;
+    font: inherit; font-size: 13px; color: #000; cursor: pointer;
+    background: var(--face); padding: 4px 10px; margin: 2px -1px 0 0;
+    border: 2px solid; border-bottom: 0;
+    border-color: var(--light) var(--dark) var(--dark) var(--light);
   }
-  .mode.active { background: var(--accent); border-color: var(--accent); color: var(--card); }
-  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px; }
+  .mode.active { margin-top: 0; padding-bottom: 7px; margin-bottom: -2px; font-weight: bold; position: relative; z-index: 2; }
+  .tabpanel { padding: 12px; }
+
+  /* ---------- soal ---------- */
+  .qbox { padding: 12px 14px; margin-bottom: 12px; }
   #tag {
-    display: inline-block; font-size: 0.75rem; font-weight: 600; text-transform: uppercase;
-    letter-spacing: .06em; color: var(--accent); background: var(--accent-soft);
-    padding: 3px 10px; border-radius: 99px;
+    display: inline-block; font: bold 11px/1 "Courier New", monospace;
+    background: var(--select); color: #fff; padding: 3px 6px; letter-spacing: .08em; text-transform: uppercase;
   }
-  #prompt { font-size: 1.25rem; margin: 12px 0 4px; }
-  #sub { color: var(--muted); font-size: 0.92rem; margin-bottom: 16px; }
-  .blank { color: var(--accent); font-weight: 600; }
+  #prompt { font-size: 19px; margin: 10px 0 4px; }
+  #sub { font-size: 13px; color: #333; }
+  .blank { font-family: "Courier New", monospace; font-weight: bold; color: var(--select); }
   .chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-  .chip { background: var(--accent-soft); color: var(--accent); padding: 4px 12px; border-radius: 8px; font-weight: 600; }
-  .plus { color: var(--muted); }
-  #options { display: grid; gap: 10px; }
+  .chip {
+    font: bold 18px "Courier New", monospace; padding: 2px 8px;
+    background: #ffffcc; border: 1px solid #000;
+  }
+  .plus { font-family: "Courier New", monospace; font-weight: bold; }
+
+  #options { display: grid; gap: 6px; }
   .opt {
-    display: flex; align-items: center; gap: 12px; text-align: left; width: 100%;
-    background: var(--card); color: var(--text); border: 1px solid var(--line);
-    border-radius: 12px; padding: 12px 14px; font: inherit; cursor: pointer;
+    display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+    font: inherit; font-size: 15px; color: #000; cursor: pointer; padding: 7px 10px;
   }
-  .opt:hover:not(:disabled) { border-color: var(--accent); }
+  .opt:active:not(:disabled) {
+    border-color: var(--dark) var(--light) var(--light) var(--dark);
+    box-shadow: inset 1px 1px var(--mid);
+  }
+  .opt:focus-visible { outline: 1px dotted #000; outline-offset: -5px; }
   .opt .num {
-    flex: none; width: 24px; height: 24px; border-radius: 6px; display: grid; place-items: center;
-    font-size: 0.8rem; background: var(--bg); color: var(--muted);
+    flex: none; width: 22px; height: 22px; display: grid; place-items: center;
+    font: bold 12px "Courier New", monospace; background: var(--paper);
+    border: 1px solid var(--mid);
   }
-  .opt.correct { border-color: var(--ok); background: var(--ok-soft); }
-  .opt.wrong { border-color: var(--no); background: var(--no-soft); }
-  .opt:disabled { cursor: default; }
-  .feedback { margin-top: 16px; padding: 14px 16px; border-radius: 12px; font-size: 0.95rem; }
-  .feedback.ok { background: var(--ok-soft); }
-  .feedback.no { background: var(--no-soft); }
-  .feedback ul { margin: 8px 0 0; padding-left: 20px; }
-  .verdict { font-weight: 700; margin-bottom: 4px; }
-  .feedback.ok .verdict { color: var(--ok); }
-  .feedback.no .verdict { color: var(--no); }
-  #nextBtn {
-    margin-top: 14px; width: 100%; padding: 12px; border: 0; border-radius: 12px;
-    background: var(--accent); color: var(--card); font: inherit; font-weight: 600; cursor: pointer;
+  .opt:disabled { cursor: default; color: #000; }
+  .opt.correct { background: var(--ok); }
+  .opt.correct .num { background: var(--ok-ink); color: #fff; border-color: var(--ok-ink); }
+  .opt.wrong { background: var(--no); }
+  .opt.wrong .num { background: var(--no-ink); color: #fff; border-color: var(--no-ink); }
+
+  .feedback { margin: 12px 0 0; padding: 10px 12px 10px; border: 2px groove var(--light); background: var(--face); }
+  .feedback .verdict { font-weight: bold; display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .feedback .verdict::before {
+    content: ""; width: 20px; height: 20px; display: grid; place-items: center; flex: none;
+    font: bold 13px/20px Tahoma, sans-serif; color: #fff; text-align: center; border: 1px solid #000;
   }
-  .note { font-size: 0.85rem; color: var(--muted); background: var(--accent-soft); padding: 10px 12px; border-radius: 10px; margin-bottom: 12px; }
-  footer { margin-top: 20px; display: flex; justify-content: space-between; align-items: center; color: var(--muted); font-size: 0.8rem; }
-  #resetBtn { background: none; border: 0; color: var(--muted); text-decoration: underline; font: inherit; cursor: pointer; }
+  .feedback.ok .verdict { color: var(--ok-ink); }
+  .feedback.ok .verdict::before { content: "\2713"; background: var(--ok-ink); }
+  .feedback.no .verdict { color: var(--no-ink); }
+  .feedback.no .verdict::before { content: "!"; background: var(--no-ink); }
+  .feedback ul { margin: 6px 0 4px; padding-left: 20px; }
+
+  .btnrow { display: flex; justify-content: flex-end; margin-top: 12px; }
+  .btn {
+    font: inherit; font-size: 13px; color: #000; cursor: pointer;
+    min-width: 120px; padding: 5px 14px;
+  }
+  .btn:active {
+    border-color: var(--dark) var(--light) var(--light) var(--dark);
+    box-shadow: inset 1px 1px var(--mid);
+  }
+  .btn.default { outline: 1px solid #000; outline-offset: 0; }
+
+  .note { font-size: 12px; padding: 8px 10px; margin-bottom: 10px; background: #ffffe1; border: 1px solid #000; }
+
+  /* ---------- daftar kata ---------- */
+  #famList {
+    list-style: none; margin: 0; padding: 4px;
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0;
+    font: 13px "Courier New", monospace;
+  }
+  #famList li { display: flex; justify-content: space-between; align-items: center; padding: 3px 6px; }
+  #famList li:nth-child(odd) { background: #f2f2f2; }
+  #famList li.done span:first-child { font-weight: bold; color: var(--ok-ink); }
+  .boxes { display: flex; gap: 2px; }
+  .boxes i { width: 10px; height: 10px; border: 1px solid #000; background: #fff; }
+  .boxes i.on { background: var(--select); }
+  .listfoot { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 8px; font-size: 12px; }
+
+  /* ---------- status bar ---------- */
+  .statusbar { display: flex; gap: 2px; margin-top: 3px; font-size: 12px; }
+  .statusbar span { padding: 2px 6px; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    border: 1px solid; border-color: var(--mid) var(--light) var(--light) var(--mid); }
+  .statusbar span:last-child { flex: 1.4; }
+
+  @media (max-width: 480px) {
+    #prompt { font-size: 17px; }
+    .statusbar span:last-child { display: none; }
+  }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <h1>Vocab Lab</h1>
-    <p>Latihan membaca kata asing lewat prefix, root, dan suffix.</p>
-  </header>
+<div class="desk">
 
-  <div class="progress"><span id="mastery"></span><span id="score"></span></div>
-  <div class="track"><div id="bar"></div></div>
+  <!-- ===== Jendela utama ===== -->
+  <section class="window raised">
+    <div class="titlebar">
+      <span>VOCAB_LAB.EXE &mdash; Latihan Kata Asing</span>
+      <span class="ctl" aria-hidden="true"><span class="raised">_</span><span class="raised">&#9633;</span><span class="raised">&times;</span></span>
+    </div>
+    <div class="menubar" aria-hidden="true"><span><u>F</u>ile</span><span><u>L</u>atihan</span><span><u>B</u>antuan</span></div>
 
-  <nav class="modes">
-    <button class="mode active" data-mode="mix">Campur</button>
-    <button class="mode" data-mode="pos">Jenis kata</button>
-    <button class="mode" data-mode="fill">Isi kalimat</button>
-    <button class="mode" data-mode="affix">Imbuhan</button>
-    <button class="mode" data-mode="parts">Pecah kata</button>
-    <button class="mode" data-mode="rel">Sinonim & antonim</button>
-  </nav>
+    <div class="body">
+      <div class="progress-row">
+        <span>Progres:</span>
+        <div id="bar" class="sunken"></div>
+        <span id="barLabel">0%</span>
+      </div>
+      <p class="hint">Satu kata dianggap dikuasai setelah 3 jawaban benar pada soal kata itu. Soal Imbuhan tidak dihitung.</p>
 
-  <div id="relNote" class="note" hidden>
-    Saran: latih dulu katanya di mode lain. Di mode Campur, sinonim dan antonim baru muncul setelah sebuah kata dijawab benar 3 kali, supaya tidak tertukar.
-  </div>
+      <nav class="tabs">
+        <button class="mode raised active" data-mode="mix">Campur</button>
+        <button class="mode raised" data-mode="pos">Jenis kata</button>
+        <button class="mode raised" data-mode="fill">Isi kalimat</button>
+        <button class="mode raised" data-mode="affix">Imbuhan</button>
+        <button class="mode raised" data-mode="parts">Pecah kata</button>
+        <button class="mode raised" data-mode="rel">Sinonim/Antonim</button>
+      </nav>
 
-  <main class="card">
-    <span id="tag"></span>
-    <div id="prompt"></div>
-    <div id="sub"></div>
-    <div id="options"></div>
-    <div id="feedback" class="feedback" hidden></div>
-    <button id="nextBtn" hidden>Soal berikutnya →</button>
-  </main>
+      <div class="tabpanel raised">
+        <div id="relNote" class="note" hidden>
+          Saran: latih dulu katanya di tab lain. Di tab Campur, sinonim dan antonim baru muncul setelah sebuah kata dijawab benar 3 kali, supaya tidak tertukar.
+        </div>
 
-  <footer>
-    <span>Tombol 1–4 untuk menjawab, Enter untuk lanjut</span>
-    <button id="resetBtn">Reset progres</button>
-  </footer>
+        <div class="qbox sunken">
+          <span id="tag"></span>
+          <div id="prompt"></div>
+          <div id="sub"></div>
+        </div>
+
+        <div id="options"></div>
+        <div id="feedback" class="feedback" hidden></div>
+        <div class="btnrow"><button id="nextBtn" class="btn raised default" hidden>Soal berikutnya &gt;</button></div>
+      </div>
+    </div>
+
+    <div class="statusbar">
+      <span id="score"></span>
+      <span id="mastery"></span>
+      <span>[1]-[4] jawab &middot; [Enter] lanjut</span>
+    </div>
+  </section>
+
+  <!-- ===== Jendela daftar kata ===== -->
+  <section class="window raised">
+    <div class="titlebar">
+      <span>DAFTAR_KATA.TXT</span>
+      <span class="ctl" aria-hidden="true"><span class="raised">_</span><span class="raised">&#9633;</span><span class="raised">&times;</span></span>
+    </div>
+    <div class="body">
+      <ul id="famList" class="sunken"></ul>
+      <div class="listfoot">
+        <span>&#9632; = 1 jawaban benar (butuh 3)</span>
+        <button id="resetBtn" class="btn raised">Reset progres</button>
+      </div>
+    </div>
+  </section>
+
 </div>
 <script src="data.js"></script>
 <script src="app.js"></script>
