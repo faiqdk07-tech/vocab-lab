@@ -279,6 +279,11 @@
   .steps-det > summary { padding: 11px 16px; color: var(--accent); font-size: 14px; flex-direction: row; }
   .steps-det[open] > summary { border-bottom: 1px solid var(--line2); }
 
+  .srcbar { justify-content: space-between; }
+  .srcmain { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .srcnow { font-weight: 600; }
+  .srctoggle { display: inline-flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--muted); cursor: pointer; }
+  .srctoggle input { width: 18px; height: 18px; margin: 0; padding: 0; accent-color: var(--accent); }
   .empty { display: grid; gap: 6px; }
   .empty .btns { margin-top: 8px; }
 
@@ -336,7 +341,7 @@
     <section id="view-progress" hidden></section>
   </main>
 </div>
-<script src="data.js?v=6"></script>
-<script src="app.js?v=6"></script>
+<script src="data.js?v=7"></script>
+<script src="app.js?v=7"></script>
 </body>
 </html>

@@ -492,13 +492,11 @@
 
   // ---------- pemilih sumber kata (dipakai di beberapa halaman) ----------
   function sourceBar() {
-    const ex = examples().length;
-    return `<div class="srcbar"><span class="srclabel">Sumber kata</span>
-      <div class="seg" id="srcSeg">
-        <button type="button" data-s="mine" class="${source() === "mine" ? "active" : ""}">Kata saya (${custom.length})</button>
-        <button type="button" data-s="all" class="${source() === "all" ? "active" : ""}">+ ${ex} kata contoh</button>
-      </div>
-      <span class="rd">${source() === "mine" ? "Hanya kata yang kamu masukkan." : `Kata saya ditambah ${ex} kata contoh bawaan.`}</span></div>`;
+    const ex = examples().length, on = source() === "all";
+    return `<div class="srcbar">
+      <div class="srcmain"><span class="srclabel">Sumber kata</span><span class="srcnow">${on ? `Kata saya (${custom.length}) + ${ex} kata contoh` : `Hanya kata saya (${custom.length})`}</span></div>
+      <label class="srctoggle"><input type="checkbox" id="exToggle"${on ? " checked" : ""}> Sertakan ${ex} kata contoh bawaan</label>
+    </div>`;
   }
   function emptyState() {
     return `<div class="group pad empty"><div class="rt">Belum ada kata saya</div>
@@ -510,14 +508,10 @@
     host.querySelectorAll("[data-use-examples]").forEach(b => b.onclick = () => { settings.examples = true; ls.set(SETTINGS, settings); updateBadge(); rerender(); });
   }
   function bindSource(rerender) {
-    document.querySelectorAll("section:not([hidden]) #srcSeg button").forEach(b => b.onclick = () => {
-      if (b.disabled) return;
-      settings.examples = b.dataset.s === "all";
-      ls.set(SETTINGS, settings);
-      updateBadge();
-      rerender();
-    });
+    const t = document.querySelector("section:not([hidden]) #exToggle");
+    if (t) t.onchange = () => { settings.examples = t.checked; ls.set(SETTINGS, settings); updateBadge(); rerender(); };
   }
+
 
   function wordCard(f) {
     return `<div class="group wcard">
