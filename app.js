@@ -311,7 +311,7 @@
     { id: "parts", title: "Pecah kata", desc: "Dari potongan-potongannya, tebak arti kata utuhnya." },
     { id: "pos", title: "Jenis kata", desc: "Bedakan noun, verb, adjective, dan adverb dari bentuknya." },
     { id: "fill", title: "Isi kalimat", desc: "Pilih bentuk kata yang pas di dalam kalimat." },
-    { id: "rel", title: "Sinonim & antonim", desc: "Ulangi kata yang sudah dikuasai lewat padanan dan lawan kata. Dilewati kalau belum ada." }
+    { id: "rel", title: "Sinonim & antonim", desc: "Pilih padanan atau lawan kata dari kata-kata di ronde ini, ditambah ulangan kata yang sudah dikuasai." }
   ];
   let roundSize = 5, round = null;
   let roundPick = "manual", picked = null, pickedSrc = null, pickedKnown = new Set();
@@ -348,9 +348,10 @@
     items.pos = words.map(f => C.pos({ ...rand(f.forms), fam: f.id }));
     items.fill = words.filter(hasSentence).map(C.fill);
 
-    const mastered = shuffle(pool().filter(f => isMastered(f) && (syns(f).length || ants(f).length)));
-    mastered.sort((a, b) => (words.includes(b) ? 1 : 0) - (words.includes(a) ? 1 : 0));
-    items.rel = mastered.slice(0, n).map(f => {
+    // Semua kata di ronde ini yang punya sinonim/antonim, ditambah sedikit ulangan kata lain yang sudah dikuasai
+    const hasRel = f => syns(f).length || ants(f).length;
+    const review = shuffle(pool().filter(f => !words.includes(f) && isMastered(f) && hasRel(f))).slice(0, Math.min(3, Math.ceil(n / 3)));
+    items.rel = words.filter(hasRel).concat(review).map(f => {
       const kinds = [];
       if (syns(f).length) kinds.push("syn");
       if (ants(f).length) kinds.push("ant");
@@ -532,7 +533,7 @@
     stage.innerHTML = `
       <div class="group sumhead"><div class="sumbig">${right}<small>/${total}</small></div><div><div class="rt">Ronde selesai</div><div class="rd">${total ? Math.round(100 * right / total) : 0}% jawaban benar</div></div></div>
       <div class="glabel">Per langkah</div>
-      <div class="group">${sc.map(s => `<div class="row between"><span>${esc(s.title)}</span><span class="${s.items.length ? "num-r" : "muted"}">${s.items.length ? `${s.right}/${s.done}` : (s.id === "rel" ? "dilewati, belum ada kata yang dikuasai" : "dilewati")}</span></div>`).join("")}</div>
+      <div class="group">${sc.map(s => `<div class="row between"><span>${esc(s.title)}</span><span class="${s.items.length ? "num-r" : "muted"}">${s.items.length ? `${s.right}/${s.done}` : (s.id === "rel" ? "dilewati, kata di ronde ini belum punya sinonim/antonim" : "dilewati")}</span></div>`).join("")}</div>
       <div class="glabel">Kata di ronde ini</div>
       <div class="group">${round.words.map(f => `<div class="row between"><span class="fw">${esc(focusOf(f))}</span>${boxes(f)}</div>`).join("")}</div>
       <div class="actions"><button type="button" class="btn" id="sumBack">Selesai</button><button type="button" class="btn primary" id="sumAgain">Ronde baru</button></div>`;
@@ -553,7 +554,7 @@
       <p class="vsub">Soal acak tanpa urutan. Cocok untuk pemanasan atau mengulang satu jenis soal saja.</p>
       ${sourceBar()}
       <div class="toolbar"><div class="seg" id="modeSeg">${MODES.map(([m, l]) => `<button type="button" data-m="${m}" class="${m === freeMode ? "active" : ""}">${l}</button>`).join("")}</div><span class="muted" id="freeScore">Benar ${freeScore.r}/${freeScore.t}</span></div>
-      ${freeMode === "rel" ? `<div class="note">Saran: kuasai dulu katanya. Di Campur dan Ronde, sinonim/antonim baru muncul setelah sebuah kata dijawab benar 3 kali, supaya tidak tertukar.</div>` : ""}
+      ${freeMode === "rel" ? `<div class="note">Saran: kenali dulu katanya lewat jenis soal lain. Di tab Campur, sinonim/antonim baru muncul setelah sebuah kata dijawab benar 3 kali, supaya tidak tertukar.</div>` : ""}
       <div id="freeStage"></div>`;
     host.querySelectorAll("#modeSeg button").forEach(b => b.onclick = () => { freeMode = b.dataset.m; freeLast = null; renderFree(); });
     bindSource(() => { freeLast = null; renderFree(); });
@@ -621,6 +622,7 @@
     "   alasan: alasan singkat dalam bahasa Indonesia kenapa jawabannya itu",
     "   sinonim: kata = arti",
     "   antonim: kata = arti",
+    "   Usahakan setiap blok punya baris sinonim, dan baris antonim kalau lawan katanya jelas.",
     "4. Tulis baris \"pecah\" hanya kalau kata itu benar-benar punya prefix, root, atau suffix yang jelas. Jangan dipaksakan.",
     "5. Jawaban kalimat harus salah satu bentuk kata di blok itu. Buat kalimat bergaya teks akademik seperti soal UTBK Literasi Bahasa Inggris.",
     "6. Kalau satu kata punya dua jenis dengan bentuk sama (misalnya petition sebagai n dan v), tulis dua baris di blok yang sama.",
