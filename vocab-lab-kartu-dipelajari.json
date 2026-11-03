@@ -1,0 +1,2456 @@
+{
+ "app": "vocab-lab-cards",
+ "version": 1,
+ "cards": [
+  {
+   "id": "c:accurate|adjective",
+   "w": "accurate",
+   "pos": "adjective",
+   "arti": "akurat, tepat",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:additional|adjective",
+   "w": "additional",
+   "pos": "adjective",
+   "arti": "tambahan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:analyze|verb",
+   "w": "analyze",
+   "pos": "verb",
+   "arti": "menganalisis",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:approximate|adjective",
+   "w": "approximate",
+   "pos": "adjective",
+   "arti": "kira-kira, perkiraan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:argue|verb",
+   "w": "argue",
+   "pos": "verb",
+   "arti": "berpendapat; berdebat",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:cause|noun",
+   "w": "cause",
+   "pos": "noun",
+   "arti": "penyebab; menyebabkan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:characterize|verb",
+   "w": "characterize",
+   "pos": "verb",
+   "arti": "menggambarkan sifat; mencirikan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:compare|verb",
+   "w": "compare",
+   "pos": "verb",
+   "arti": "membandingkan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:contradict|verb",
+   "w": "contradict",
+   "pos": "verb",
+   "arti": "bertentangan dengan; membantah",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:contrast|verb",
+   "w": "contrast",
+   "pos": "verb",
+   "arti": "membedakan; perbedaan mencolok",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:effect|noun",
+   "w": "effect",
+   "pos": "noun",
+   "arti": "akibat, dampak",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:evidence|noun",
+   "w": "evidence",
+   "pos": "noun",
+   "arti": "bukti",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:information|noun",
+   "w": "information",
+   "pos": "noun",
+   "arti": "informasi",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:predict|verb",
+   "w": "predict",
+   "pos": "verb",
+   "arti": "memprediksi",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:primary|adjective",
+   "w": "primary",
+   "pos": "adjective",
+   "arti": "utama",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:problem|noun",
+   "w": "problem",
+   "pos": "noun",
+   "arti": "masalah",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:significant|adjective",
+   "w": "significant",
+   "pos": "adjective",
+   "arti": "signifikan, penting",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:solution|noun",
+   "w": "solution",
+   "pos": "noun",
+   "arti": "solusi",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:summarize|verb",
+   "w": "summarize",
+   "pos": "verb",
+   "arti": "meringkas",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:support|verb",
+   "w": "support",
+   "pos": "verb",
+   "arti": "mendukung; dukungan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:affect|verb",
+   "w": "affect",
+   "pos": "verb",
+   "arti": "memengaruhi",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:calculate|verb",
+   "w": "calculate",
+   "pos": "verb",
+   "arti": "menghitung",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:comparison|noun",
+   "w": "comparison",
+   "pos": "noun",
+   "arti": "perbandingan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:complex|adjective",
+   "w": "complex",
+   "pos": "adjective",
+   "arti": "rumit, kompleks",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:definition|noun",
+   "w": "definition",
+   "pos": "noun",
+   "arti": "definisi",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:describe|verb",
+   "w": "describe",
+   "pos": "verb",
+   "arti": "menggambarkan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:description|noun",
+   "w": "description",
+   "pos": "noun",
+   "arti": "deskripsi, gambaran",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:difference|noun",
+   "w": "difference",
+   "pos": "noun",
+   "arti": "perbedaan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:element|noun",
+   "w": "element",
+   "pos": "noun",
+   "arti": "unsur",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:emphasize|verb",
+   "w": "emphasize",
+   "pos": "verb",
+   "arti": "menekankan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:frequent|adjective",
+   "w": "frequent",
+   "pos": "adjective",
+   "arti": "sering",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:identify|verb",
+   "w": "identify",
+   "pos": "verb",
+   "arti": "mengenali, mengidentifikasi",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:maximum|noun",
+   "w": "maximum",
+   "pos": "noun",
+   "arti": "nilai tertinggi; maksimum",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:method|noun",
+   "w": "method",
+   "pos": "noun",
+   "arti": "metode, cara",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:minimum|noun",
+   "w": "minimum",
+   "pos": "noun",
+   "arti": "nilai terendah; minimum",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:negative|adjective",
+   "w": "negative",
+   "pos": "adjective",
+   "arti": "negatif",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:positive|adjective",
+   "w": "positive",
+   "pos": "adjective",
+   "arti": "positif",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:purpose|noun",
+   "w": "purpose",
+   "pos": "noun",
+   "arti": "tujuan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:similarity|noun",
+   "w": "similarity",
+   "pos": "noun",
+   "arti": "kemiripan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:theory|noun",
+   "w": "theory",
+   "pos": "noun",
+   "arti": "teori",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:assumption|noun",
+   "w": "assumption",
+   "pos": "noun",
+   "arti": "asumsi, anggapan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:author|noun",
+   "w": "author",
+   "pos": "noun",
+   "arti": "penulis",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:category|noun",
+   "w": "category",
+   "pos": "noun",
+   "arti": "kategori, golongan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:cite|verb",
+   "w": "cite",
+   "pos": "verb",
+   "arti": "mengutip, menyebut sebagai sumber",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:clarify|verb",
+   "w": "clarify",
+   "pos": "verb",
+   "arti": "memperjelas",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:classify|verb",
+   "w": "classify",
+   "pos": "verb",
+   "arti": "mengelompokkan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:conclude|verb",
+   "w": "conclude",
+   "pos": "verb",
+   "arti": "menyimpulkan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:context|noun",
+   "w": "context",
+   "pos": "noun",
+   "arti": "konteks",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:demonstrate|verb",
+   "w": "demonstrate",
+   "pos": "verb",
+   "arti": "menunjukkan, membuktikan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:detail|noun",
+   "w": "detail",
+   "pos": "noun",
+   "arti": "rincian",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:disagree|verb",
+   "w": "disagree",
+   "pos": "verb",
+   "arti": "tidak setuju",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:essential|adjective",
+   "w": "essential",
+   "pos": "adjective",
+   "arti": "sangat penting, mendasar",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:express|verb",
+   "w": "express",
+   "pos": "verb",
+   "arti": "mengungkapkan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:factor|noun",
+   "w": "factor",
+   "pos": "noun",
+   "arti": "faktor",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:graphic|adjective",
+   "w": "graphic",
+   "pos": "adjective",
+   "arti": "bergambar; grafis",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:interpret|verb",
+   "w": "interpret",
+   "pos": "verb",
+   "arti": "menafsirkan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:introduce|verb",
+   "w": "introduce",
+   "pos": "verb",
+   "arti": "memperkenalkan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:meaning|noun",
+   "w": "meaning",
+   "pos": "noun",
+   "arti": "makna, arti",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:point of view|noun",
+   "w": "point of view",
+   "pos": "noun",
+   "arti": "sudut pandang",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:quotation|noun",
+   "w": "quotation",
+   "pos": "noun",
+   "arti": "kutipan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:argument|noun",
+   "w": "argument",
+   "pos": "noun",
+   "arti": "argumen, alasan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:arrangement|noun",
+   "w": "arrangement",
+   "pos": "noun",
+   "arti": "pengaturan; kesepakatan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:characteristic|noun",
+   "w": "characteristic",
+   "pos": "noun",
+   "arti": "ciri khas; khas",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:compute|verb",
+   "w": "compute",
+   "pos": "verb",
+   "arti": "menghitung",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:convince|verb",
+   "w": "convince",
+   "pos": "verb",
+   "arti": "meyakinkan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:data|noun",
+   "w": "data",
+   "pos": "noun",
+   "arti": "data",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:equation|noun",
+   "w": "equation",
+   "pos": "noun",
+   "arti": "persamaan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:equivalent|adjective",
+   "w": "equivalent",
+   "pos": "adjective",
+   "arti": "setara; padanan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:establish|verb",
+   "w": "establish",
+   "pos": "verb",
+   "arti": "mendirikan; memastikan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:estimate|verb",
+   "w": "estimate",
+   "pos": "verb",
+   "arti": "memperkirakan; perkiraan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:evaluate|verb",
+   "w": "evaluate",
+   "pos": "verb",
+   "arti": "menilai, mengevaluasi",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:example|noun",
+   "w": "example",
+   "pos": "noun",
+   "arti": "contoh",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:imply|verb",
+   "w": "imply",
+   "pos": "verb",
+   "arti": "menyiratkan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:infer|verb",
+   "w": "infer",
+   "pos": "verb",
+   "arti": "menyimpulkan (dari petunjuk)",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:likely|adjective",
+   "w": "likely",
+   "pos": "adjective",
+   "arti": "kemungkinan besar",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:process|noun",
+   "w": "process",
+   "pos": "noun",
+   "arti": "proses; memproses",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:seldom|adverb",
+   "w": "seldom",
+   "pos": "adverb",
+   "arti": "jarang",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:signify|verb",
+   "w": "signify",
+   "pos": "verb",
+   "arti": "menandakan, berarti",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:table|noun",
+   "w": "table",
+   "pos": "noun",
+   "arti": "tabel",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:vary|verb",
+   "w": "vary",
+   "pos": "verb",
+   "arti": "bervariasi, berbeda-beda",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:advantage|noun",
+   "w": "advantage",
+   "pos": "noun",
+   "arti": "keuntungan, kelebihan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:analysis|noun",
+   "w": "analysis",
+   "pos": "noun",
+   "arti": "analisis",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:central|adjective",
+   "w": "central",
+   "pos": "adjective",
+   "arti": "utama, pokok",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:conclusion|noun",
+   "w": "conclusion",
+   "pos": "noun",
+   "arti": "kesimpulan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:connection|noun",
+   "w": "connection",
+   "pos": "noun",
+   "arti": "hubungan, kaitan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:criticize|verb",
+   "w": "criticize",
+   "pos": "verb",
+   "arti": "mengkritik",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:examine|verb",
+   "w": "examine",
+   "pos": "verb",
+   "arti": "memeriksa, meneliti",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:explanation|noun",
+   "w": "explanation",
+   "pos": "noun",
+   "arti": "penjelasan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:impact|noun",
+   "w": "impact",
+   "pos": "noun",
+   "arti": "dampak; berdampak pada",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:organize|verb",
+   "w": "organize",
+   "pos": "verb",
+   "arti": "mengatur, menyusun",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:paragraph|noun",
+   "w": "paragraph",
+   "pos": "noun",
+   "arti": "paragraf",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:persuade|verb",
+   "w": "persuade",
+   "pos": "verb",
+   "arti": "membujuk, meyakinkan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:phrase|noun",
+   "w": "phrase",
+   "pos": "noun",
+   "arti": "frasa, ungkapan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:potential|adjective",
+   "w": "potential",
+   "pos": "adjective",
+   "arti": "berpotensi; potensi",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:reason|noun",
+   "w": "reason",
+   "pos": "noun",
+   "arti": "alasan; bernalar",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:refer|verb",
+   "w": "refer",
+   "pos": "verb",
+   "arti": "merujuk",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:reinforce|verb",
+   "w": "reinforce",
+   "pos": "verb",
+   "arti": "memperkuat",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:statement|noun",
+   "w": "statement",
+   "pos": "noun",
+   "arti": "pernyataan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:summary|noun",
+   "w": "summary",
+   "pos": "noun",
+   "arti": "ringkasan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:viewpoint|noun",
+   "w": "viewpoint",
+   "pos": "noun",
+   "arti": "sudut pandang",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:accomplish|verb",
+   "w": "accomplish",
+   "pos": "verb",
+   "arti": "mencapai, menyelesaikan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:attitude|noun",
+   "w": "attitude",
+   "pos": "noun",
+   "arti": "sikap",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:concept|noun",
+   "w": "concept",
+   "pos": "noun",
+   "arti": "konsep, gagasan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:consequence|noun",
+   "w": "consequence",
+   "pos": "noun",
+   "arti": "akibat, konsekuensi",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:culture|noun",
+   "w": "culture",
+   "pos": "noun",
+   "arti": "budaya",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:define|verb",
+   "w": "define",
+   "pos": "verb",
+   "arti": "mendefinisikan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:develop|verb",
+   "w": "develop",
+   "pos": "verb",
+   "arti": "mengembangkan; berkembang",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:discussion|noun",
+   "w": "discussion",
+   "pos": "noun",
+   "arti": "diskusi, pembahasan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:explain|verb",
+   "w": "explain",
+   "pos": "verb",
+   "arti": "menjelaskan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:fact|noun",
+   "w": "fact",
+   "pos": "noun",
+   "arti": "fakta",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:illustrate|verb",
+   "w": "illustrate",
+   "pos": "verb",
+   "arti": "menggambarkan dengan contoh",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:include|verb",
+   "w": "include",
+   "pos": "verb",
+   "arti": "mencakup, memasukkan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:opinion|noun",
+   "w": "opinion",
+   "pos": "noun",
+   "arti": "pendapat",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:realistic|adjective",
+   "w": "realistic",
+   "pos": "adjective",
+   "arti": "realistis, masuk akal",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:reflect|verb",
+   "w": "reflect",
+   "pos": "verb",
+   "arti": "mencerminkan; merenungkan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:represent|verb",
+   "w": "represent",
+   "pos": "verb",
+   "arti": "mewakili; melambangkan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:similar|adjective",
+   "w": "similar",
+   "pos": "adjective",
+   "arti": "mirip",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:source|noun",
+   "w": "source",
+   "pos": "noun",
+   "arti": "sumber",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:specific|adjective",
+   "w": "specific",
+   "pos": "adjective",
+   "arti": "spesifik, khusus",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:value|noun",
+   "w": "value",
+   "pos": "noun",
+   "arti": "nilai; menghargai",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:accompanying|adjective",
+   "w": "accompanying",
+   "pos": "adjective",
+   "arti": "yang menyertai",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:adapt|verb",
+   "w": "adapt",
+   "pos": "verb",
+   "arti": "menyesuaikan diri; mengadaptasi",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:claim|verb",
+   "w": "claim",
+   "pos": "verb",
+   "arti": "mengklaim; klaim",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:confirm|verb",
+   "w": "confirm",
+   "pos": "verb",
+   "arti": "memastikan, mengonfirmasi",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:determine|verb",
+   "w": "determine",
+   "pos": "verb",
+   "arti": "menentukan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:effective|adjective",
+   "w": "effective",
+   "pos": "adjective",
+   "arti": "efektif, manjur",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:following|adjective",
+   "w": "following",
+   "pos": "adjective",
+   "arti": "berikut",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:function|noun",
+   "w": "function",
+   "pos": "noun",
+   "arti": "fungsi; berfungsi",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:highlight|verb",
+   "w": "highlight",
+   "pos": "verb",
+   "arti": "menonjolkan, menyoroti",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:indicate|verb",
+   "w": "indicate",
+   "pos": "verb",
+   "arti": "menunjukkan, menandakan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:influence|noun",
+   "w": "influence",
+   "pos": "noun",
+   "arti": "pengaruh; memengaruhi",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:involve|verb",
+   "w": "involve",
+   "pos": "verb",
+   "arti": "melibatkan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:mention|verb",
+   "w": "mention",
+   "pos": "verb",
+   "arti": "menyebutkan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:pattern|noun",
+   "w": "pattern",
+   "pos": "noun",
+   "arti": "pola",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:portray|verb",
+   "w": "portray",
+   "pos": "verb",
+   "arti": "menggambarkan, memerankan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:selection|noun",
+   "w": "selection",
+   "pos": "noun",
+   "arti": "pilihan; bagian teks pilihan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:strategy|noun",
+   "w": "strategy",
+   "pos": "noun",
+   "arti": "strategi",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:suggest|verb",
+   "w": "suggest",
+   "pos": "verb",
+   "arti": "menyarankan; mengisyaratkan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:tone|noun",
+   "w": "tone",
+   "pos": "noun",
+   "arti": "nada, sikap penulis",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:trait|noun",
+   "w": "trait",
+   "pos": "noun",
+   "arti": "sifat, ciri",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:address|verb",
+   "w": "address",
+   "pos": "verb",
+   "arti": "menangani, membahas",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:benefit|noun",
+   "w": "benefit",
+   "pos": "noun",
+   "arti": "manfaat; bermanfaat bagi",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:consistent|adjective",
+   "w": "consistent",
+   "pos": "adjective",
+   "arti": "konsisten",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:critical|adjective",
+   "w": "critical",
+   "pos": "adjective",
+   "arti": "kritis; sangat penting",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:distinct|adjective",
+   "w": "distinct",
+   "pos": "adjective",
+   "arti": "berbeda jelas; khas",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:expression|noun",
+   "w": "expression",
+   "pos": "noun",
+   "arti": "ungkapan; ekspresi",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:feature|noun",
+   "w": "feature",
+   "pos": "noun",
+   "arti": "ciri, fitur",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:graph|noun",
+   "w": "graph",
+   "pos": "noun",
+   "arti": "grafik",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:hypothesis|noun",
+   "w": "hypothesis",
+   "pos": "noun",
+   "arti": "hipotesis, dugaan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:option|noun",
+   "w": "option",
+   "pos": "noun",
+   "arti": "pilihan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:origin|noun",
+   "w": "origin",
+   "pos": "noun",
+   "arti": "asal-usul",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:passage|noun",
+   "w": "passage",
+   "pos": "noun",
+   "arti": "bacaan, kutipan teks",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:previous|adjective",
+   "w": "previous",
+   "pos": "adjective",
+   "arti": "sebelumnya",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:primarily|adverb",
+   "w": "primarily",
+   "pos": "adverb",
+   "arti": "terutama",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:relationship|noun",
+   "w": "relationship",
+   "pos": "noun",
+   "arti": "hubungan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:result|noun",
+   "w": "result",
+   "pos": "noun",
+   "arti": "hasil; mengakibatkan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:reveal|verb",
+   "w": "reveal",
+   "pos": "verb",
+   "arti": "mengungkapkan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:simplify|verb",
+   "w": "simplify",
+   "pos": "verb",
+   "arti": "menyederhanakan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:stance|noun",
+   "w": "stance",
+   "pos": "noun",
+   "arti": "sikap, pendirian",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:subsequent|adjective",
+   "w": "subsequent",
+   "pos": "adjective",
+   "arti": "berikutnya, sesudahnya",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:appropriate|adjective",
+   "w": "appropriate",
+   "pos": "adjective",
+   "arti": "sesuai, pantas",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:chronological|adjective",
+   "w": "chronological",
+   "pos": "adjective",
+   "arti": "kronologis, urut waktu",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:continuous|adjective",
+   "w": "continuous",
+   "pos": "adjective",
+   "arti": "terus-menerus",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:diagram|noun",
+   "w": "diagram",
+   "pos": "noun",
+   "arti": "diagram, bagan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:encourage|verb",
+   "w": "encourage",
+   "pos": "verb",
+   "arti": "mendorong, menyemangati",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:favor|verb",
+   "w": "favor",
+   "pos": "verb",
+   "arti": "lebih menyukai; mendukung",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:focus|verb",
+   "w": "focus",
+   "pos": "verb",
+   "arti": "berfokus; fokus",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:inference|noun",
+   "w": "inference",
+   "pos": "noun",
+   "arti": "kesimpulan (dari petunjuk)",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:perceive|verb",
+   "w": "perceive",
+   "pos": "verb",
+   "arti": "memandang; merasakan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:present|verb",
+   "w": "present",
+   "pos": "verb",
+   "arti": "menyajikan; hadir",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:propose|verb",
+   "w": "propose",
+   "pos": "verb",
+   "arti": "mengusulkan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:provide|verb",
+   "w": "provide",
+   "pos": "verb",
+   "arti": "menyediakan, memberikan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:rarely|adverb",
+   "w": "rarely",
+   "pos": "adverb",
+   "arti": "jarang",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:recognize|verb",
+   "w": "recognize",
+   "pos": "verb",
+   "arti": "mengenali; mengakui",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:reference|noun",
+   "w": "reference",
+   "pos": "noun",
+   "arti": "rujukan, acuan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:relevant|adjective",
+   "w": "relevant",
+   "pos": "adjective",
+   "arti": "relevan, berkaitan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:repetition|noun",
+   "w": "repetition",
+   "pos": "noun",
+   "arti": "pengulangan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:research|noun",
+   "w": "research",
+   "pos": "noun",
+   "arti": "penelitian; meneliti",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:restate|verb",
+   "w": "restate",
+   "pos": "verb",
+   "arti": "menyatakan kembali",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:situation|noun",
+   "w": "situation",
+   "pos": "noun",
+   "arti": "situasi, keadaan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:contribute|verb",
+   "w": "contribute",
+   "pos": "verb",
+   "arti": "berkontribusi, menyumbang",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:convey|verb",
+   "w": "convey",
+   "pos": "verb",
+   "arti": "menyampaikan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:development|noun",
+   "w": "development",
+   "pos": "noun",
+   "arti": "perkembangan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:eliminate|verb",
+   "w": "eliminate",
+   "pos": "verb",
+   "arti": "menghilangkan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:explicit|adjective",
+   "w": "explicit",
+   "pos": "adjective",
+   "arti": "tersurat, gamblang",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:implicit|adjective",
+   "w": "implicit",
+   "pos": "adjective",
+   "arti": "tersirat",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:intention|noun",
+   "w": "intention",
+   "pos": "noun",
+   "arti": "niat, maksud",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:introduction|noun",
+   "w": "introduction",
+   "pos": "noun",
+   "arti": "pendahuluan; perkenalan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:observe|verb",
+   "w": "observe",
+   "pos": "verb",
+   "arti": "mengamati",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:opposite|adjective",
+   "w": "opposite",
+   "pos": "adjective",
+   "arti": "berlawanan; kebalikan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:perspective|noun",
+   "w": "perspective",
+   "pos": "noun",
+   "arti": "sudut pandang",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:portion|noun",
+   "w": "portion",
+   "pos": "noun",
+   "arti": "bagian, porsi",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:range|noun",
+   "w": "range",
+   "pos": "noun",
+   "arti": "rentang, cakupan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:role|noun",
+   "w": "role",
+   "pos": "noun",
+   "arti": "peran",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:shift|noun",
+   "w": "shift",
+   "pos": "noun",
+   "arti": "pergeseran; bergeser",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:substitute|noun",
+   "w": "substitute",
+   "pos": "noun",
+   "arti": "pengganti; mengganti",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:suggestion|noun",
+   "w": "suggestion",
+   "pos": "noun",
+   "arti": "saran",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:symbol|noun",
+   "w": "symbol",
+   "pos": "noun",
+   "arti": "simbol, lambang",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:thesis|noun",
+   "w": "thesis",
+   "pos": "noun",
+   "arti": "tesis, gagasan utama",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:typical|adjective",
+   "w": "typical",
+   "pos": "adjective",
+   "arti": "khas, umum",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:accentuate|verb",
+   "w": "accentuate",
+   "pos": "verb",
+   "arti": "menonjolkan, mempertegas",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:acclaim|noun",
+   "w": "acclaim",
+   "pos": "noun",
+   "arti": "pujian; memuji",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:adhere|verb",
+   "w": "adhere",
+   "pos": "verb",
+   "arti": "mematuhi; menempel",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:collaborate|verb",
+   "w": "collaborate",
+   "pos": "verb",
+   "arti": "bekerja sama",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:commence|verb",
+   "w": "commence",
+   "pos": "verb",
+   "arti": "memulai, dimulai",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:efficient|adjective",
+   "w": "efficient",
+   "pos": "adjective",
+   "arti": "efisien",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:elementary|adjective",
+   "w": "elementary",
+   "pos": "adjective",
+   "arti": "dasar, sederhana",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:foundation|noun",
+   "w": "foundation",
+   "pos": "noun",
+   "arti": "fondasi, dasar; yayasan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:hostile|adjective",
+   "w": "hostile",
+   "pos": "adjective",
+   "arti": "bermusuhan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:implement|verb",
+   "w": "implement",
+   "pos": "verb",
+   "arti": "menerapkan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:oblige|verb",
+   "w": "oblige",
+   "pos": "verb",
+   "arti": "mewajibkan; membantu",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:obtain|verb",
+   "w": "obtain",
+   "pos": "verb",
+   "arti": "memperoleh",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:prompt|verb",
+   "w": "prompt",
+   "pos": "verb",
+   "arti": "mendorong, memicu; segera",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:reluctant|adjective",
+   "w": "reluctant",
+   "pos": "adjective",
+   "arti": "enggan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:abolish|verb",
+   "w": "abolish",
+   "pos": "verb",
+   "arti": "menghapuskan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:accumulate|verb",
+   "w": "accumulate",
+   "pos": "verb",
+   "arti": "mengumpulkan; menumpuk",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:beneficial|adjective",
+   "w": "beneficial",
+   "pos": "adjective",
+   "arti": "bermanfaat",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:benign|adjective",
+   "w": "benign",
+   "pos": "adjective",
+   "arti": "ramah; tidak berbahaya",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:controversial|adjective",
+   "w": "controversial",
+   "pos": "adjective",
+   "arti": "kontroversial",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:conventional|adjective",
+   "w": "conventional",
+   "pos": "adjective",
+   "arti": "konvensional, lazim",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:deceptive|adjective",
+   "w": "deceptive",
+   "pos": "adjective",
+   "arti": "menipu, menyesatkan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:diligent|adjective",
+   "w": "diligent",
+   "pos": "adjective",
+   "arti": "rajin, tekun",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:extensive|adjective",
+   "w": "extensive",
+   "pos": "adjective",
+   "arti": "luas, menyeluruh",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:frivolous|adjective",
+   "w": "frivolous",
+   "pos": "adjective",
+   "arti": "remeh; tidak serius",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:fundamental|adjective",
+   "w": "fundamental",
+   "pos": "adjective",
+   "arti": "mendasar",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:integrate|verb",
+   "w": "integrate",
+   "pos": "verb",
+   "arti": "memadukan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:mediocre|adjective",
+   "w": "mediocre",
+   "pos": "adjective",
+   "arti": "biasa-biasa saja",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:negligible|adjective",
+   "w": "negligible",
+   "pos": "adjective",
+   "arti": "dapat diabaikan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:petition|noun",
+   "w": "petition",
+   "pos": "noun",
+   "arti": "petisi; mengajukan petisi",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:phenomenon|noun",
+   "w": "phenomenon",
+   "pos": "noun",
+   "arti": "fenomena, gejala",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:remarkable|adjective",
+   "w": "remarkable",
+   "pos": "adjective",
+   "arti": "luar biasa",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:simultaneous|adjective",
+   "w": "simultaneous",
+   "pos": "adjective",
+   "arti": "serentak, bersamaan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:acknowledge|verb",
+   "w": "acknowledge",
+   "pos": "verb",
+   "arti": "mengakui",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:acquire|verb",
+   "w": "acquire",
+   "pos": "verb",
+   "arti": "memperoleh",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:coherent|adjective",
+   "w": "coherent",
+   "pos": "adjective",
+   "arti": "runtut, padu",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:constrain|verb",
+   "w": "constrain",
+   "pos": "verb",
+   "arti": "membatasi",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:deplete|verb",
+   "w": "deplete",
+   "pos": "verb",
+   "arti": "menghabiskan, menguras",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:digress|verb",
+   "w": "digress",
+   "pos": "verb",
+   "arti": "menyimpang dari topik",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:evade|verb",
+   "w": "evade",
+   "pos": "verb",
+   "arti": "menghindari, mengelak",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:exceed|verb",
+   "w": "exceed",
+   "pos": "verb",
+   "arti": "melebihi",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:inhibit|verb",
+   "w": "inhibit",
+   "pos": "verb",
+   "arti": "menghambat",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:intervene|verb",
+   "w": "intervene",
+   "pos": "verb",
+   "arti": "campur tangan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:justify|verb",
+   "w": "justify",
+   "pos": "verb",
+   "arti": "membenarkan, memberi alasan",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:periodic|adjective",
+   "w": "periodic",
+   "pos": "adjective",
+   "arti": "berkala",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  },
+  {
+   "id": "c:predominant|adjective",
+   "w": "predominant",
+   "pos": "adjective",
+   "arti": "paling dominan, utama",
+   "known": null,
+   "right": 0,
+   "wrong": 0,
+   "last": 0
+  }
+ ]
+}
