@@ -88,8 +88,9 @@
     if (!cards.length) {
       body.innerHTML = `<div class="group pad empty"><div class="rt">${T("Belum ada kartu", "No cards yet")}</div>
         <div class="rd">${T("Tempel daftar kata di tab Daftar kartu, satu kata per baris.", "Paste a word list in the Card list tab, one word per line.")}</div>
-        <div class="btns"><button type="button" class="btn primary" id="toList">${T("Tambah kartu", "Add cards")}</button></div></div>`;
+        <div class="btns"><button type="button" class="btn primary" id="toList">${T("Tambah kartu", "Add cards")}</button><button type="button" class="btn" id="toImport">${T("Impor file kartu (.json)", "Import card file (.json)")}</button></div></div>`;
       $("toList").onclick = () => { tab = "list"; render(); };
+      $("toImport").onclick = () => { tab = "list"; render(); $("cardImpFile").click(); };
       return;
     }
     const c = counts();
