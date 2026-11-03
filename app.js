@@ -1225,7 +1225,7 @@
   // =====================================================
   //  NAVIGASI
   // =====================================================
-  const VIEWS = ["round", "free", "words", "progress"];
+  const VIEWS = ["round", "free", "cards", "words", "progress"];
   function updateBadge() {
     const F = pool();
     if (!F.length) { $("badge").textContent = "Belum ada kata"; return; }
@@ -1239,6 +1239,7 @@
     if (v === "free") renderFree();
     if (v === "words") renderWords();
     if (v === "progress") renderProgress();
+    if (v === "cards" && window.VL_renderCards) window.VL_renderCards();
     window.scrollTo(0, 0);
   }
   document.querySelectorAll("[data-view]").forEach(b => b.onclick = () => show(b.dataset.view));
