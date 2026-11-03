@@ -24,7 +24,19 @@
   if (!prefs || typeof prefs !== "object") prefs = {};
   if (!prefs.deck) prefs.deck = "todo";
   if (!prefs.dir) prefs.dir = "word";
-  const save = () => ls.set(STORE, cards);
+  if (!prefs.mode) prefs.mode = "learn"; // learn = kartu kiri diulang, test = tiap kartu sekali
+  const MAX_REPEAT = 2;                  // maksimal diulang per sesi
+  // Riwayat harian: satu catatan per tanggal (jumlah hafal / belum / baru di akhir hari itu)
+  const LOG = "vocabLab.cardLog.v1";
+  let log = ls.get(LOG, {});
+  if (!log || typeof log !== "object") log = {};
+  const dayKey = d => { const x = d || new Date(); return x.getFullYear() + "-" + String(x.getMonth() + 1).padStart(2, "0") + "-" + String(x.getDate()).padStart(2, "0"); };
+  function logToday() {
+    const c = counts();
+    log[dayKey()] = { known: c.known, todo: c.todo, new: c.new };
+    ls.set(LOG, log);
+  }
+  function save() { const ok = ls.set(STORE, cards); logToday(); return ok; }
   const savePrefs = () => ls.set(PREFS, prefs);
 
   const POS_MAP = { n: "noun", noun: "noun", v: "verb", verb: "verb", adj: "adjective", adjective: "adjective", adv: "adverb", adverb: "adverb" };
@@ -75,11 +87,13 @@
       <p class="vsub">${T("Swipe kanan kalau sudah hafal, kiri kalau belum. Daftar katanya terpisah dari Kata saya.", "Swipe right if you know it, left if you don't. This word list is separate from My words.")}</p>
       <div class="toolbar"><div class="seg" id="cardTab">
         <button type="button" data-t="practice" class="${tab === "practice" ? "active" : ""}">${T("Latihan", "Practice")}</button>
+        <button type="button" data-t="progress" class="${tab === "progress" ? "active" : ""}">${T("Progres", "Progress")}</button>
         <button type="button" data-t="list" class="${tab === "list" ? "active" : ""}">${T("Daftar kartu", "Card list")} (${cards.length})</button>
       </div></div>
       <div id="cardBody"></div>`;
     host.querySelectorAll("#cardTab button").forEach(b => b.onclick = () => { tab = b.dataset.t; render(); });
     if (tab === "practice") renderStart($("cardBody"));
+    else if (tab === "progress") renderProgress($("cardBody"));
     else renderList($("cardBody"));
   }
 
@@ -97,8 +111,8 @@
     const deckSize = prefs.deck === "all" ? cards.length : c.todo + c.new;
     body.innerHTML = `
       <div class="stats3 cardstats">
-        <div class="group stat"><div class="sv cs-known">${c.known}</div><div class="sl">${T("hafal", "known")}</div></div>
-        <div class="group stat"><div class="sv cs-todo">${c.todo}</div><div class="sl">${T("belum hafal", "still learning")}</div></div>
+        <div class="group stat"><div class="sv"><i class="dot d-known"></i>${c.known}</div><div class="sl">${T("hafal", "known")}</div></div>
+        <div class="group stat"><div class="sv"><i class="dot d-todo"></i>${c.todo}</div><div class="sl">${T("belum hafal", "still learning")}</div></div>
         <div class="group stat"><div class="sv">${c.new}</div><div class="sl">${T("belum pernah dilihat", "not seen yet")}</div></div>
       </div>
       <div class="glabel">${T("Pengaturan", "Settings")}</div>
@@ -117,6 +131,15 @@
             <button type="button" data-r="meaning" class="${prefs.dir === "meaning" ? "active" : ""}">${T("Arti → Kata", "Meaning → Word")}</button>
           </div>
         </div>
+        <div class="row between wrap">
+          <div><div class="rt">${T("Mode", "Mode")}</div><div class="rd">${prefs.mode === "test"
+            ? T("Tes: setiap kartu muncul sekali. Cocok untuk tes mingguan.", "Test: every card appears once. Good for a weekly test.")
+            : T(`Belajar: kartu yang di-swipe kiri muncul lagi beberapa kartu kemudian, maksimal ${MAX_REPEAT} kali per sesi.`, `Learn: left-swiped cards come back a few cards later, at most ${MAX_REPEAT} times per session.`)}</div></div>
+          <div class="seg" id="modeSegC">
+            <button type="button" data-m="learn" class="${prefs.mode === "learn" ? "active" : ""}">${T("Belajar", "Learn")}</button>
+            <button type="button" data-m="test" class="${prefs.mode === "test" ? "active" : ""}">${T("Tes", "Test")}</button>
+          </div>
+        </div>
       </div>
       <div class="actions">
         <span class="keys">${deckSize ? "" : T("Semua kartu sudah hafal. Pilih Semua untuk mengulang.", "Every card is known. Choose All to review.")}</span>
@@ -132,6 +155,7 @@
       </div>`;
     body.querySelectorAll("#deckSeg button").forEach(b => b.onclick = () => { prefs.deck = b.dataset.d; savePrefs(); render(); });
     body.querySelectorAll("#dirSeg button").forEach(b => b.onclick = () => { prefs.dir = b.dataset.r; savePrefs(); render(); });
+    body.querySelectorAll("#modeSegC button").forEach(b => b.onclick = () => { prefs.mode = b.dataset.m; savePrefs(); render(); });
     $("cardStart").onclick = () => startSession(prefs.deck === "all" ? cards : cards.filter(x => status(x) !== "known"));
   }
 
@@ -142,7 +166,7 @@
     if (!list.length) return;
     // kartu belum hafal dulu, lalu yang baru, lalu yang sudah hafal (masing-masing diacak)
     const order = ["todo", "new", "known"].flatMap(s => shuffle(list.filter(c => status(c) === s)));
-    session = { queue: order.map(c => c.id), i: 0, total: order.length, flipped: false, history: [], firstKnown: new Set(), missed: new Set(), busy: false };
+    session = { queue: order.map(c => c.id), i: 0, total: order.length, flipped: false, history: [], firstKnown: new Set(), missed: new Set(), misses: {}, mode: prefs.mode, busy: false };
     render();
     window.scrollTo(0, 0);
   }
@@ -251,7 +275,7 @@
     session.history.push({
       id: c.id, i: session.i, queue: session.queue.slice(),
       prev: { known: c.known, right: c.right || 0, wrong: c.wrong || 0, last: c.last || 0 },
-      first: session.firstKnown.has(c.id), missed: session.missed.has(c.id)
+      first: session.firstKnown.has(c.id), missed: session.missed.has(c.id), misses: session.misses[c.id] || 0
     });
     c.last = Date.now();
     if (known) {
@@ -260,9 +284,13 @@
     } else {
       c.known = false; c.wrong = (c.wrong || 0) + 1;
       session.missed.add(c.id);
-      // muncul lagi beberapa kartu kemudian di sesi yang sama
-      const at = Math.min(session.queue.length, session.i + 1 + 3);
-      session.queue.splice(at, 0, c.id);
+      const n = (session.misses[c.id] || 0) + 1;
+      session.misses[c.id] = n;
+      // mode belajar: muncul lagi makin jauh (±6 lalu ±12 kartu), maksimal MAX_REPEAT kali per sesi
+      if (session.mode !== "test" && n <= MAX_REPEAT) {
+        const at = Math.min(session.queue.length, session.i + 1 + 6 * n);
+        session.queue.splice(at, 0, c.id);
+      }
     }
     save();
     session.i++;
@@ -278,6 +306,7 @@
     session.queue = h.queue; session.i = h.i; session.flipped = true;
     h.first ? session.firstKnown.add(h.id) : session.firstKnown.delete(h.id);
     h.missed ? session.missed.add(h.id) : session.missed.delete(h.id);
+    session.misses[h.id] = h.misses;
     save();
     render();
   }
@@ -289,8 +318,8 @@
       <h2 class="vtitle">${T("Sesi selesai", "Session complete")}</h2>
       <div class="stats3 cardstats">
         <div class="group stat"><div class="sv">${session.total}</div><div class="sl">${T("kartu", "cards")}</div></div>
-        <div class="group stat"><div class="sv cs-known">${first}</div><div class="sl">${T("hafal di percobaan pertama", "known on the first try")}</div></div>
-        <div class="group stat"><div class="sv cs-todo">${missed.length}</div><div class="sl">${T("sempat di-swipe kiri", "swiped left at least once")}</div></div>
+        <div class="group stat"><div class="sv"><i class="dot d-known"></i>${first}</div><div class="sl">${T("hafal di percobaan pertama", "known on the first try")}</div></div>
+        <div class="group stat"><div class="sv"><i class="dot d-todo"></i>${missed.length}</div><div class="sl">${T("sempat di-swipe kiri", "swiped left at least once")}</div></div>
       </div>
       ${missed.length ? `<div class="glabel">${T("Perlu diulang", "Worth repeating")}</div>
         <div class="group">${missed.map(c => `<div class="row between"><span class="fw">${esc(c.w)}</span><span class="muted">${esc(c.arti)}</span></div>`).join("")}</div>` : ""}
@@ -314,6 +343,115 @@
     else if (e.key === "ArrowLeft") { e.preventDefault(); fly(-1); }
     else if (e.key === "z" || e.key === "Z" || e.key === "Backspace") { e.preventDefault(); undo(); }
   });
+
+  // =====================================================
+  //  PROGRES KARTU
+  // =====================================================
+  const MON_ID = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+  const MON_EN = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const fmtDay = k => { const [y, m, d] = k.split("-").map(Number); return `${d} ${(EN() ? MON_EN : MON_ID)[m - 1]}`; };
+
+  function renderProgress(body) {
+    if (!cards.length) {
+      body.innerHTML = `<div class="group pad empty"><div class="rt">${T("Belum ada kartu", "No cards yet")}</div><div class="rd">${T("Progres muncul setelah kamu menambahkan kartu dan mulai swipe.", "Progress appears once you add cards and start swiping.")}</div></div>`;
+      return;
+    }
+    logToday();
+    const c = counts(), N = cards.length;
+    const pct = v => Math.round(100 * v / N);
+    const LBL = { known: T("Hafal", "Known"), todo: T("Belum hafal", "Still learning"), new: T("Belum dilihat", "Not seen yet") };
+
+    // ---- bar komposisi ----
+    const segs = ["known", "todo", "new"].filter(k => c[k] > 0);
+    const comp = `<div class="compbar" role="img" aria-label="${esc(`${LBL.known} ${c.known}, ${LBL.todo} ${c.todo}, ${LBL.new} ${c.new}`)}">${segs.map(k =>
+      `<span class="cseg s-${k}" style="flex:${c[k]}" title="${esc(`${LBL[k]}: ${c[k]} (${pct(c[k])}%)`)}"></span>`).join("")}</div>`;
+    const legend = `<div class="clegend">${["known", "todo", "new"].map(k =>
+      `<span><i class="dot d-${k}"></i>${LBL[k]} <b>${c[k]}</b> <span class="muted">(${pct(c[k])}%)</span></span>`).join("")}</div>`;
+
+    // ---- data harian ----
+    const days = Object.keys(log).sort().slice(-14);
+    const rows = days.map(k => ({ k, ...log[k] }));
+
+    // ---- kelompok kata ----
+    const by = k => cards.filter(x => status(x) === k);
+    const todo = by("todo").sort((a, b) => (b.wrong || 0) - (a.wrong || 0) || a.w.localeCompare(b.w));
+    const neu = by("new").sort((a, b) => a.w.localeCompare(b.w));
+    const known = by("known").sort((a, b) => a.w.localeCompare(b.w));
+    const item = x => `<div class="witem"><span class="fw">${esc(x.w)}</span><span class="wa">${esc(x.arti)}</span>${(x.right || x.wrong) ? `<span class="wrw" title="${esc(T("benar / salah", "right / wrong"))}">✓${x.right || 0} ✗${x.wrong || 0}</span>` : ""}</div>`;
+    const group = (k, list, open, note) => `
+      <details class="group wgroup"${open ? " open" : ""}>
+        <summary><span><i class="dot d-${k}"></i>${LBL[k]} <b>(${list.length})</b></span>${note ? `<span class="rd">${note}</span>` : ""}</summary>
+        ${list.length ? `<div class="wlist">${list.map(item).join("")}</div>` : `<div class="row muted">${T("Belum ada.", "None yet.")}</div>`}
+      </details>`;
+
+    body.innerHTML = `
+      <div class="glabel">${T("Komposisi sekarang", "Current breakdown")} · ${N} ${T("kartu", "cards")}</div>
+      <div class="group pad">${comp}${legend}</div>
+
+      <div class="glabel">${T("Perkembangan harian", "Daily progress")}</div>
+      <div class="group pad">
+        <div class="chartwrap" id="dayChart"></div>
+        <div class="clegend"><span><i class="dot d-known"></i>${LBL.known}</span><span><i class="dot d-todo"></i>${LBL.todo}</span><span class="muted">${T("Sisa tinggi kolom = belum dilihat", "The rest of the column = not seen yet")}</span></div>
+        ${rows.length < 2 ? `<div class="rd chartnote">${T("Grafik terisi satu kolom per hari kamu latihan. Kembali besok untuk melihat perubahannya.", "The chart adds one column for each day you practice. Come back tomorrow to see the change.")}</div>` : ""}
+        <details class="det tabledet"><summary>${T("Lihat sebagai tabel", "View as table")}</summary>
+          <table class="dtable"><thead><tr><th>${T("Tanggal", "Date")}</th><th>${LBL.known}</th><th>${LBL.todo}</th><th>${LBL.new}</th></tr></thead>
+          <tbody>${rows.slice().reverse().map(r => `<tr><td>${fmtDay(r.k)}</td><td>${r.known}</td><td>${r.todo}</td><td>${r.new}</td></tr>`).join("")}</tbody></table>
+        </details>
+      </div>
+
+      <div class="glabel">${T("Kata per status", "Words by status")}</div>
+      ${group("todo", todo, true, todo.length ? T("urut dari yang paling sering salah", "most-missed first") : "")}
+      ${group("new", neu, false, "")}
+      ${group("known", known, false, "")}`;
+
+    drawDayChart($("dayChart"), rows, N);
+  }
+
+  function drawDayChart(host, rows, N) {
+    const W = Math.max(280, host.clientWidth || 600), H = 210;
+    const m = { t: 22, r: 8, b: 26, l: 34 };
+    const iw = W - m.l - m.r, ih = H - m.t - m.b;
+    const maxV = Math.max(1, ...rows.map(r => r.known + r.todo + r.new));
+    const step = maxV <= 20 ? 5 : maxV <= 50 ? 10 : maxV <= 100 ? 25 : maxV <= 250 ? 50 : maxV <= 500 ? 100 : 250;
+    const top = Math.ceil(maxV / step) * step;
+    const y = v => m.t + ih - (v / top) * ih;
+    const band = iw / Math.max(rows.length, 1);
+    const bw = Math.min(24, band * 0.6);
+    const ticks = []; for (let v = 0; v <= top; v += step) ticks.push(v);
+    const every = Math.ceil(rows.length / Math.max(1, Math.floor(iw / 46)));
+    const rt = (x, yTop, w, h, round) => {
+      if (h <= 0) return "";
+      const r = round ? Math.min(4, h, w / 2) : 0;
+      return `M${x},${yTop + h}V${yTop + r}${r ? `Q${x},${yTop} ${x + r},${yTop}` : ""}H${x + w - r}${r ? `Q${x + w},${yTop} ${x + w},${yTop + r}` : ""}V${yTop + h}Z`;
+    };
+    let g = ticks.map(v => `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}" class="gl"/><text x="${m.l - 6}" y="${y(v) + 4}" class="ax" text-anchor="end">${v}</text>`).join("");
+    rows.forEach((r, i) => {
+      const cx = m.l + band * i + band / 2, x = cx - bw / 2;
+      const hk = (r.known / top) * ih, ht = (r.todo / top) * ih;
+      const yk = m.t + ih - hk, yt = yk - ht - (ht > 0 && hk > 0 ? 2 : 0);
+      g += `<path d="${rt(x, yk, bw, hk, ht <= 0)}" class="m-known"/>`;
+      g += `<path d="${rt(x, yt, bw, ht, true)}" class="m-todo"/>`;
+      if ((rows.length - 1 - i) % every === 0) g += `<text x="${cx}" y="${H - 8}" class="ax" text-anchor="${i === rows.length - 1 && rows.length > 1 ? "end" : "middle"}" dx="${i === rows.length - 1 && rows.length > 1 ? bw / 2 + 2 : 0}">${fmtDay(r.k)}</text>`;
+      if (i === rows.length - 1 && r.known > 0) g += `<text x="${cx}" y="${Math.max(12, yt - 6)}" class="vl" text-anchor="${rows.length > 1 ? "end" : "middle"}" dx="${rows.length > 1 ? bw / 2 : 0}">${r.known} ${T("hafal", "known")}</text>`;
+      g += `<rect x="${m.l + band * i}" y="${m.t}" width="${band}" height="${ih}" class="hit" data-i="${i}"/>`;
+    });
+    host.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" role="img" aria-label="${esc(T("Grafik jumlah kata hafal dan belum hafal per hari", "Chart of known and still-learning words per day"))}">${g}</svg><div class="ctip" hidden></div>`;
+    const tip = host.querySelector(".ctip");
+    const showTip = el => {
+      const r = rows[+el.dataset.i];
+      host.querySelectorAll(".hit").forEach(h => h.classList.toggle("on", h === el));
+      tip.innerHTML = `<b>${fmtDay(r.k)}</b><div><i class="dot d-known"></i>${T("Hafal", "Known")}: ${r.known}</div><div><i class="dot d-todo"></i>${T("Belum hafal", "Still learning")}: ${r.todo}</div><div class="muted">${T("Belum dilihat", "Not seen yet")}: ${r.new}</div>`;
+      tip.hidden = false;
+      const bx = el.getBBox(), sc = host.clientWidth / W;
+      const left = Math.min(host.clientWidth - tip.offsetWidth - 4, Math.max(4, (bx.x + bx.width / 2) * sc - tip.offsetWidth / 2));
+      tip.style.left = left + "px"; tip.style.top = "4px";
+    };
+    host.querySelectorAll(".hit").forEach(el => {
+      el.addEventListener("pointerenter", () => showTip(el));
+      el.addEventListener("click", () => showTip(el));
+    });
+    host.addEventListener("pointerleave", () => { tip.hidden = true; host.querySelectorAll(".hit").forEach(h => h.classList.remove("on")); });
+  }
 
   // =====================================================
   //  DAFTAR KARTU
