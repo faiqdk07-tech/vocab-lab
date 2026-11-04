@@ -9,15 +9,16 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Vocab Lab">
 <title>Vocab Lab</title>
+<script>try{var t=localStorage.getItem("vocabLab.theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
 <style>
   /* ================= token warna (gaya sistem Apple) ================= */
   :root {
-    color-scheme: light dark;
+    color-scheme: light;
     --bg: #f7f7fb;
     --card: rgba(255,255,255,.86);
     --card2: rgba(255,255,255,.5);
     --mesh-base: #f7f7fb; --wash-top: #c4bcf7; --wash-mid: #e6e2fc;
-    --wash-text: #14102e; --wash-text2: #423a78; --seg-bg: rgba(255,255,255,.55); --wash-glow: rgba(255,236,190,.55);
+    --wash-text: #14102e; --wash-text2: #423a78; --seg-bg: rgba(255,255,255,.55); --bubble: rgba(255,255,255,.95); --wash-glow: rgba(255,236,190,.55);
     --lx-1: #b9a9ff; --lx-2: #8b77ee; --lx-belly: #e3dcff; --lx-shadow: rgba(80,60,170,.18);
     --glow: rgba(110,100,190,.10); --rim: rgba(255,255,255,.7);
     --card-solid: #ffffff; --card2-solid: #f7f7fa; --tab-on: #ffffff;
@@ -59,12 +60,12 @@
     --spring: cubic-bezier(.32,.72,0,1);
   }
   @media (prefers-color-scheme: dark) {
-    :root {
+    :root:not([data-theme="light"]) {color-scheme: dark;
       --bg: #0c0b16;
       --card: rgba(36,34,58,.62);
       --card2: rgba(44,42,68,.5);
       --mesh-base: #0c0b16; --wash-top: #322c74; --wash-mid: #1a173b;
-      --wash-text: #ffffff; --wash-text2: rgba(232,228,255,.86); --seg-bg: rgba(255,255,255,.14); --wash-glow: rgba(255,214,140,.10);
+      --wash-text: #ffffff; --wash-text2: rgba(232,228,255,.86); --seg-bg: rgba(255,255,255,.14); --bubble: #2e2a5c; --wash-glow: rgba(255,214,140,.10);
       --lx-1: #a796ff; --lx-2: #7461e0; --lx-belly: #cfc6ff; --lx-shadow: rgba(0,0,0,.45);
       --glow: rgba(0,0,0,.35); --rim: rgba(255,255,255,.08);
       --card-solid: #1c1c1e; --card2-solid: #232326; --tab-on: rgba(255,255,255,.14);
@@ -93,6 +94,40 @@
       --shadow: none;
       --shadow-lg: 0 10px 30px rgba(0,0,0,.5);
     }
+  }
+  :root[data-theme="dark"] {color-scheme: dark;
+      --bg: #0c0b16;
+      --card: rgba(36,34,58,.62);
+      --card2: rgba(44,42,68,.5);
+      --mesh-base: #0c0b16; --wash-top: #322c74; --wash-mid: #1a173b;
+      --wash-text: #ffffff; --wash-text2: rgba(232,228,255,.86); --seg-bg: rgba(255,255,255,.14); --bubble: #2e2a5c; --wash-glow: rgba(255,214,140,.10);
+      --lx-1: #a796ff; --lx-2: #7461e0; --lx-belly: #cfc6ff; --lx-shadow: rgba(0,0,0,.45);
+      --glow: rgba(0,0,0,.35); --rim: rgba(255,255,255,.08);
+      --card-solid: #1c1c1e; --card2-solid: #232326; --tab-on: rgba(255,255,255,.14);
+
+      --fill: rgba(118,118,128,.24);
+      --fill2: rgba(118,118,128,.16);
+      --sep: rgba(84,84,88,.55);
+      --line: rgba(84,84,88,.65);
+      --line2: rgba(84,84,88,.40);
+      --text: #ffffff;
+      --text2: rgba(235,235,245,.85);
+      --muted: rgba(235,235,245,.60);
+      --side: rgba(24,22,44,.55);
+      --bar: rgba(30,28,50,.72);
+      --blue: #0a84ff;   --blue-t: #409cff;
+      --green: #30d158;  --green-t: #30d158;
+      --red: #ff453a;    --red-t: #ff6961;
+      --orange: #ff9f0a; --orange-t: #ffb340;
+      --purple: #bf5af2; --purple-t: #da8fff;
+      --pink: #ff375f;   --indigo: #5e5ce6;  --teal: #40c8e0;
+      --accent-soft: rgba(10,132,255,.20);
+      --ok-soft: rgba(48,209,88,.18);
+      --no-soft: rgba(255,69,58,.18);
+      --note: rgba(255,214,10,.14);
+      --hero-a: rgba(10,132,255,.30); --hero-b: rgba(40,38,90,.6); --hero-c: rgba(191,90,242,.26); --glass: rgba(44,44,46,.72);
+      --shadow: none;
+      --shadow-lg: 0 10px 30px rgba(0,0,0,.5);
   }
 
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -130,32 +165,73 @@
   .app .vsub { font-weight: 500; }
 
   /* ================= maskot Lexi ================= */
-  .lexi-wrap { position: relative; flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; margin: -6px -4px -18px 0; }
-  .lexi-wrap .hero-bubble { position: relative; max-width: 220px; margin-bottom: 6px; text-align: left; line-height: 1.35; animation: none; }
-  .lexi-wrap .hero-bubble::after {
-    content: ""; position: absolute; right: 46px; bottom: -6px; width: 12px; height: 12px; border-radius: 50%;
-    background: var(--glass); box-shadow: inset 0 0 0 .5px var(--line2);
+  .lexi-fig { padding: 0; border: 0; background: none; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+  .lexi-fig svg { width: 100%; height: 100%; display: block; overflow: visible; }
+  .lexi-fig .lx-body { transform-origin: 60px 112px; animation: lxIdle 3.6s ease-in-out infinite; }
+  .lexi-fig .lx-shadow { fill: var(--lx-shadow); transform-origin: 60px 118px; animation: lxShadow 3.6s ease-in-out infinite; }
+  .lexi-fig .lx-star { transform-box: fill-box; transform-origin: center; animation: lxStar 5s ease-in-out infinite; }
+  .lexi-fig .lx-eye { transform-box: fill-box; transform-origin: center; transition: transform .08s; }
+  .lexi-fig.blink .lx-eye { transform: scaleY(.1); }
+  .lexi-fig .lx-pupil { transition: transform .12s ease-out; }
+  .lexi-fig .lx-sparkles { transform-box: fill-box; transform-origin: center; animation: lxTwinkle 1.6s ease-in-out infinite; }
+  .lexi-fig .lx-tear { animation: lxTear 1.8s ease-in infinite; }
+  .lexi-fig .lx-zz { animation: lxZz 2.6s ease-in-out infinite; }
+  .lexi-fig .lx-think circle { animation: lxThink 1.8s ease-in-out infinite; }
+  .lexi-fig .lx-think circle:nth-child(2) { animation-delay: .2s; }
+  .lexi-fig .lx-think circle:nth-child(3) { animation-delay: .4s; }
+  .lexi-fig.hop .lx-body { animation: lxHop .6s var(--spring), lxIdle 3.6s ease-in-out .6s infinite; }
+  .lexi-fig.hop .lx-star { animation: lxSpin .7s var(--spring); }
+  .lexi-fig:focus-visible { outline: 3px solid color-mix(in srgb, var(--accent) 45%, transparent); outline-offset: 2px; border-radius: 24px; }
+
+  /* beranda: sapaan di atas, gelembung di kiri Lexi */
+  .hero-top {
+    display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "text lexi" "bubble lexi";
+    align-items: end; column-gap: 6px; position: relative; z-index: 1;
+  }
+  .hero-text { grid-area: text; align-self: start; min-width: 0; padding-top: 6px; }
+  .hero-top .hero-bubble {
+    grid-area: bubble; justify-self: end; align-self: center; position: relative; max-width: 260px; margin: 10px 4px 22px 0;
+    text-align: left; line-height: 1.35; animation: none; border-radius: 18px;
+    background: var(--bubble); -webkit-backdrop-filter: none; backdrop-filter: none;
+    box-shadow: 0 6px 18px var(--glow);
+  }
+  .hero-top .hero-bubble::after {
+    content: ""; position: absolute; right: -7px; top: 50%; margin-top: -7px;
+    border: 7px solid transparent; border-right-width: 0; border-left: 8px solid var(--bubble);
   }
   .hero-bubble.pop { animation: bubblePop .4s var(--spring); }
-  @keyframes bubblePop { from { opacity: 0; transform: translateY(6px) scale(.92); } }
-  .lexi { width: 112px; height: 116px; padding: 0; border: 0; background: none; cursor: pointer; margin-right: 8px; touch-action: manipulation; }
-  .lexi svg { width: 100%; height: 100%; display: block; overflow: visible; }
-  .lexi .lx-body { transform-origin: 60px 112px; animation: lxIdle 3.6s ease-in-out infinite; }
-  .lexi .lx-shadow { fill: var(--lx-shadow); transform-origin: 60px 117px; animation: lxShadow 3.6s ease-in-out infinite; }
-  .lexi .lx-star { transform-origin: 69px 10px; animation: lxStar 5s ease-in-out infinite; }
-  .lexi .lx-eye { transform-box: fill-box; transform-origin: center; transition: transform .08s; }
-  .lexi.blink .lx-eye { transform: scaleY(.1); }
-  .lexi .lx-pupil { transition: transform .12s ease-out; }
-  .lexi .lx-open { opacity: 0; }
-  .lexi.happy .lx-open { opacity: 1; }
-  .lexi.happy .lx-smile { opacity: 0; }
-  .lexi.hop .lx-body { animation: lxHop .6s var(--spring), lxIdle 3.6s ease-in-out .6s infinite; }
-  .lexi.hop .lx-star { animation: lxSpin .7s var(--spring); }
-  .lexi:focus-visible { outline: 3px solid color-mix(in srgb, var(--accent) 45%, transparent); outline-offset: 2px; border-radius: 24px; }
+  @keyframes bubblePop { from { opacity: 0; transform: translateX(8px) scale(.92); } }
+  .lexi { grid-area: lexi; width: 132px; height: 136px; margin-bottom: -12px; }
+
+  /* Lexi di halaman lain */
+  main > section.has-lexi { position: relative; }
+  .page-lexi { position: absolute; top: -12px; right: -6px; width: 92px; height: 96px; z-index: 1; }
+  .has-lexi > .vtitle, .has-lexi > .vsub { padding-right: 96px; }
+  .lexi-short > .vtitle { min-height: 82px; margin-bottom: 10px; }
+  .fb-lexi { float: right; width: 64px; height: 66px; margin: -10px -6px 0 10px; }
+  .feedback { display: flow-root; }
+  .empty { position: relative; padding-right: 112px !important; min-height: 120px; }
+  .empty-lexi { position: absolute; right: 12px; bottom: 8px; width: 88px; height: 92px; }
+  .sumhead { position: relative; }
+  .sum-lexi { width: 84px; height: 88px; margin-left: auto; flex: none; }
+
+  /* tombol tema */
+  .lb-ctrls { display: flex; align-items: center; gap: 8px; }
+  .theme-btn {
+    width: 32px; height: 32px; flex: none; display: grid; place-items: center; border: 0; border-radius: 50%;
+    background: var(--seg-bg); color: var(--wash-text); cursor: pointer; transition: transform .2s var(--spring);
+  }
+  .theme-btn svg { width: 18px; height: 18px; }
+  .theme-btn:active { transform: scale(.9) rotate(-20deg); }
+  .theme-btn:focus-visible { outline: 3px solid color-mix(in srgb, var(--accent) 45%, transparent); outline-offset: 2px; }
   @keyframes lxIdle { 50% { transform: translateY(-4px) scale(1.01, .99); } }
   @keyframes lxShadow { 50% { transform: scaleX(.86); opacity: .7; } }
   @keyframes lxStar { 50% { transform: rotate(14deg) scale(1.08); } }
   @keyframes lxSpin { to { transform: rotate(360deg) scale(1); } }
+  @keyframes lxTwinkle { 50% { opacity: .45; transform: scale(.82); } }
+  @keyframes lxTear { 0% { transform: translateY(-2px); opacity: 0; } 30% { opacity: 1; } 100% { transform: translateY(10px); opacity: 0; } }
+  @keyframes lxZz { 50% { transform: translate(3px, -4px); opacity: .55; } }
+  @keyframes lxThink { 50% { opacity: .4; } }
   @keyframes lxHop {
     0% { transform: scale(1, 1); }
     18% { transform: scale(1.1, .86); }
@@ -165,6 +241,7 @@
   }
 
 
+  html, body { background: var(--mesh-base); }
   .side {
     position: sticky; top: 0; height: 100vh; overflow-y: auto;
     display: flex; flex-direction: column;
@@ -250,7 +327,8 @@
     cursor: pointer; transition: background .2s, box-shadow .2s;
   }
   .seg button.active { background: var(--card); box-shadow: 0 3px 8px rgba(0,0,0,.12), 0 3px 1px rgba(0,0,0,.04); font-weight: 600; }
-  @media (prefers-color-scheme: dark) { .seg button.active { background: #636366; } }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .seg button.active { background: #636366; } }
+  :root[data-theme="dark"] .seg button.active { background: #636366; }
   .toolbar { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
 
   /* ================= stepper ================= */
@@ -517,8 +595,6 @@
   /* ================= beranda ================= */
   #view-home { max-width: 780px; display: grid; gap: 22px; }
   .hero { position: relative; padding: 4px 2px 0; }
-  .hero-top { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; margin-bottom: 4px; position: relative; z-index: 1; }
-  .hero-top > div:first-child { padding-bottom: 30px; min-width: 0; }
   .hero-hi { margin: 0; font: 700 30px/1.15 var(--display); letter-spacing: -.025em; text-wrap: balance; }
   .hero-sub { margin: 4px 0 0; color: var(--text2); font-size: 15px; }
   .hero-bubble {
@@ -595,7 +671,7 @@
     .app { display: block; }
     .side {
       position: sticky; top: 0; z-index: 5; height: auto; overflow: visible;
-      padding: calc(10px + env(safe-area-inset-top)) 16px 10px;
+      top: env(safe-area-inset-top, 0px); padding-block: 10px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
       border-right: 0; border-bottom: .5px solid var(--sep);
       background: color-mix(in srgb, var(--wash-top) 82%, var(--card-solid));
       -webkit-backdrop-filter: none; backdrop-filter: none;
@@ -604,7 +680,7 @@
     .logo { width: 32px; height: 32px; border-radius: 8px; font-size: 13px; }
     .bname { font-size: 16px; }
     .bsub { font-size: 12px; }
-    .langbar { position: absolute; top: calc(14px + env(safe-area-inset-top)); right: 16px; margin: 0; padding: 0; }
+    .langbar { position: absolute; top: 14px; right: max(16px, env(safe-area-inset-right, 0px)); margin: 0; padding: 0; }
     .langbar > span { display: none; }
     .nav {
       position: fixed; z-index: 10;
@@ -628,7 +704,8 @@
     .nav button.active { background: var(--tab-on); color: var(--accent); font-weight: 600; box-shadow: 0 2px 10px var(--glow); }
     .ico, .nav button.active .ico { color: inherit; width: 28px; height: 26px; }
     .ico svg { width: 24px; height: 24px; }
-    main { padding: 22px 16px calc(118px + env(safe-area-inset-bottom)); }
+    main { padding-block: 22px calc(118px + env(safe-area-inset-bottom, 0px)); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+    body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--wash-top); }
     .vtitle { font-size: 30px; }
     .vsub { margin-bottom: 20px; }
     .options { grid-template-columns: 1fr; }
@@ -637,10 +714,12 @@
     .glabel { margin-left: 16px; }
     .nav button[data-view="free"] { display: none; }
     .hero-hi { font-size: 28px; }
-    .lexi { width: 118px; height: 122px; margin-right: 0; }
-    .lexi-wrap { margin-bottom: -26px; }
-    .lexi-wrap .hero-bubble { max-width: 168px; font-size: 12px; padding: 6px 12px; }
-    .lexi-wrap .hero-bubble::after { right: 40px; }
+    .lexi { width: 112px; height: 116px; margin-bottom: -10px; }
+    .hero-top .hero-bubble { font-size: 12.5px; padding: 8px 12px; margin-bottom: 16px; }
+    .page-lexi { width: 76px; height: 80px; top: -8px; right: -4px; }
+    .has-lexi > .vtitle, .has-lexi > .vsub { padding-right: 78px; }
+    .lexi-short > .vtitle { min-height: 72px; }
+    .langbar .lb-ctrls { gap: 6px; }
     .tiles { gap: 8px; }
     .tile-v { font-size: 22px; }
   }
@@ -661,6 +740,19 @@
     .stats3 { grid-template-columns: 1fr; }
     .cf-word { font-size: 30px; }
   }
+  /* ================= dialog konfirmasi ala iOS ================= */
+  .alert-scrim { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 24px; background: rgba(0,0,0,.32); animation: fadeIn .2s ease; }
+  .alert { width: min(290px, 100%); background: var(--bar); border-radius: 16px; overflow: hidden; text-align: center;
+    -webkit-backdrop-filter: saturate(180%) blur(24px); backdrop-filter: saturate(180%) blur(24px);
+    box-shadow: var(--shadow-lg); animation: popIn .32s var(--spring); }
+  .alert p { margin: 0; padding: 20px 18px 18px; font-size: 14px; line-height: 1.4; white-space: pre-line; color: var(--text); }
+  .alert-btns { display: grid; grid-template-columns: 1fr 1fr; border-top: .5px solid var(--sep); }
+  .alert-btns button { border: 0; background: none; padding: 12px; font-size: 16px; color: var(--accent); cursor: pointer; }
+  .alert-btns button + button { border-left: .5px solid var(--sep); font-weight: 600; }
+  .alert-btns button:active { background: var(--fill2); }
+  .alert-btns button.destr { color: var(--red); }
+  @keyframes fadeIn { from { opacity: 0; } }
+  @keyframes popIn { from { opacity: 0; transform: scale(1.12); } }
 </style>
 </head>
 <body>
@@ -679,7 +771,7 @@
       <button type="button" data-view="words"><span class="ico" style="--c:var(--orange)" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4H6.5A2.5 2.5 0 0 0 4 6.5v11A2.5 2.5 0 0 0 6.5 20h11a2.5 2.5 0 0 0 2.5-2.5V12"/><path d="M18.4 3.6a2 2 0 0 1 2.8 2.8L13 14.6l-3.6.8.8-3.6z"/></svg></span><span>Kata saya</span></button>
       <button type="button" data-view="progress"><span class="ico" style="--c:var(--green)" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"/><rect x="5.5" y="12" width="3" height="5.5" rx="1" fill="currentColor"/><rect x="10.5" y="8" width="3" height="9.5" rx="1" fill="currentColor"/><rect x="15.5" y="4.5" width="3" height="13" rx="1" fill="currentColor"/></svg></span><span>Progres</span></button>
     </nav>
-    <div class="langbar"><span>Bahasa</span><div class="seg" id="langSeg"><button type="button" data-l="id">ID</button><button type="button" data-l="en">EN</button></div></div>
+    <div class="langbar"><span>Tampilan</span><div class="lb-ctrls"><button type="button" class="theme-btn" id="themeBtn" aria-label="Tema"></button><div class="seg" id="langSeg"><button type="button" data-l="id">ID</button><button type="button" data-l="en">EN</button></div></div></div>
   </aside>
   <main>
     <section id="view-home"></section>
@@ -690,9 +782,44 @@
     <section id="view-progress" hidden></section>
   </main>
 </div>
-<script src="i18n.js?v=18"></script>
-<script src="data.js?v=18"></script>
-<script src="app.js?v=18"></script>
-<script src="cards.js?v=18"></script>
+<script>
+(function () {
+  // window.confirm diblokir di artefak; tampilkan dialog sendiri lalu ulangi klik bila disetujui.
+  var lastTarget = null, allowOnce = false;
+  document.addEventListener("click", function (e) { lastTarget = e.target; }, true);
+  window.confirm = function (msg) {
+    if (allowOnce) { allowOnce = false; return true; }
+    var target = lastTarget, en = document.documentElement.lang === "en";
+    var destructive = /hapus|delete/i.test(String(msg));
+    var scrim = document.createElement("div");
+    scrim.className = "alert-scrim";
+    scrim.innerHTML = '<div class="alert" role="alertdialog" aria-modal="true"><p></p><div class="alert-btns">' +
+      '<button type="button" id="alertCancel"></button><button type="button" id="alertOk"></button></div></div>';
+    scrim.querySelector("p").textContent = String(msg);
+    var cancel = scrim.querySelector("#alertCancel"), ok = scrim.querySelector("#alertOk");
+    cancel.textContent = en ? "Cancel" : "Batal";
+    ok.textContent = destructive ? (en ? "Delete" : "Hapus") : "OK";
+    if (destructive) ok.classList.add("destr");
+    function close() { scrim.remove(); document.removeEventListener("keydown", onKey); }
+    function onKey(e) { if (e.key === "Escape") close(); }
+    cancel.onclick = close;
+    scrim.onclick = function (e) { if (e.target === scrim) close(); };
+    ok.onclick = function () {
+      close();
+      if (target && target.isConnected) { allowOnce = true; target.click(); allowOnce = false; }
+    };
+    document.addEventListener("keydown", onKey);
+    document.body.appendChild(scrim);
+    ok.focus();
+    return false;
+  };
+})();
+</script>
+<script src="i18n.js?v=19"></script>
+<script src="lexi.js?v=19"></script>
+<script src="data.js?v=19"></script>
+<script src="app.js?v=19"></script>
+<script src="cards.js?v=19"></script>
+
 </body>
 </html>

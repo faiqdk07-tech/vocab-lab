@@ -1223,38 +1223,8 @@
   }
 
   // =====================================================
-  //  MASKOT "LEXI" (beranda)
+  //  MASKOT "LEXI" di beranda (gambar & gerak ada di lexi.js)
   // =====================================================
-  const MASCOT_SVG = `
-    <svg viewBox="0 0 120 124" aria-hidden="true">
-      <defs>
-        <linearGradient id="lxBody" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--lx-1)"/><stop offset="1" stop-color="var(--lx-2)"/></linearGradient>
-      </defs>
-      <ellipse class="lx-shadow" cx="60" cy="117" rx="30" ry="4.5"/>
-      <g class="lx-body">
-        <path class="lx-antenna" d="M60 30 C 60 22, 64 18, 68 14" fill="none" stroke="var(--lx-2)" stroke-width="3" stroke-linecap="round"/>
-        <path class="lx-star" d="M69 4.5l2.1 4.3 4.7.6-3.4 3.3.8 4.7-4.2-2.2-4.2 2.2.8-4.7-3.4-3.3 4.7-.6z" fill="#ffc94d"/>
-        <rect x="16" y="28" width="88" height="80" rx="36" fill="url(#lxBody)"/>
-        <ellipse cx="60" cy="86" rx="28" ry="17" fill="var(--lx-belly)"/>
-        <g class="lx-eye" data-cx="45" data-cy="60"><ellipse cx="45" cy="60" rx="11" ry="12.5" fill="#fff"/><g class="lx-pupil"><circle cx="45" cy="61" r="5.6" fill="#2a2150"/><circle cx="47.2" cy="58.6" r="1.9" fill="#fff"/></g></g>
-        <g class="lx-eye" data-cx="75" data-cy="60"><ellipse cx="75" cy="60" rx="11" ry="12.5" fill="#fff"/><g class="lx-pupil"><circle cx="75" cy="61" r="5.6" fill="#2a2150"/><circle cx="77.2" cy="58.6" r="1.9" fill="#fff"/></g></g>
-        <ellipse cx="31" cy="75" rx="6" ry="3.6" fill="#ff8fb3" opacity=".55"/>
-        <ellipse cx="89" cy="75" rx="6" ry="3.6" fill="#ff8fb3" opacity=".55"/>
-        <path class="lx-smile" d="M53 76 Q60 82 67 76" fill="none" stroke="#2a2150" stroke-width="2.6" stroke-linecap="round"/>
-        <path class="lx-open" d="M52.5 75 Q60 76.5 67.5 75 Q66.5 85 60 85 Q53.5 85 52.5 75z" fill="#2a2150"/>
-        <g class="lx-book">
-          <ellipse cx="27" cy="94" rx="7" ry="6" fill="var(--lx-2)"/>
-          <ellipse cx="93" cy="94" rx="7" ry="6" fill="var(--lx-2)"/>
-          <path d="M60 96 L32 90 L32 108 L60 114z" fill="#fff"/>
-          <path d="M60 96 L88 90 L88 108 L60 114z" fill="#f1eeff"/>
-          <path d="M37 95.5l17 3.6M37 100.5l17 3.6M66 99.1l17-3.6M66 104.1l17-3.6" stroke="#c9c1f5" stroke-width="1.6" stroke-linecap="round"/>
-          <path d="M60 96v18" stroke="#b3a8ef" stroke-width="1.4"/>
-          <ellipse cx="33" cy="99" rx="5.5" ry="5" fill="var(--lx-1)"/>
-          <ellipse cx="87" cy="99" rx="5.5" ry="5" fill="var(--lx-1)"/>
-        </g>
-      </g>
-    </svg>`;
-  let mascotTip = -1;
   function mascotLines() {
     const en = isEN();
     const tips = AFFIXES.prefix.concat(AFFIXES.root, AFFIXES.suffix).map(a => {
@@ -1274,33 +1244,11 @@
   }
   function mascotTap() {
     const m = $("lexi");
-    if (!m) return;
-    m.classList.remove("hop");
-    void m.offsetWidth;
-    m.classList.add("hop", "happy");
-    clearTimeout(m._t);
-    m._t = setTimeout(() => m.classList.remove("happy"), 1400);
+    if (!m || !window.Lexi) return;
+    Lexi.react(m, ["excited", "joy", "wink", "surprised"][Math.floor(Math.random() * 4)], 1500);
     if (!mascotQueue.length) mascotQueue = mascotLines();
     mascotSay(mascotQueue.pop());
   }
-  function lookAt(x, y) {
-    const m = $("lexi");
-    if (!m || m.offsetParent === null) return;
-    const svg = m.querySelector("svg"), r = svg.getBoundingClientRect(), k = 120 / r.width;
-    svg.querySelectorAll(".lx-eye").forEach(eye => {
-      const ex = r.left + (+eye.dataset.cx) / k, ey = r.top + (+eye.dataset.cy) / k;
-      let dx = (x - ex) * k, dy = (y - ey) * k;
-      const dist = Math.hypot(dx, dy) || 1, lim = Math.min(4.2, dist / 12);
-      eye.querySelector(".lx-pupil").setAttribute("transform", `translate(${(dx / dist * lim).toFixed(2)} ${(dy / dist * lim).toFixed(2)})`);
-    });
-  }
-  window.addEventListener("pointermove", e => lookAt(e.clientX, e.clientY), { passive: true });
-  window.addEventListener("pointerdown", e => lookAt(e.clientX, e.clientY), { passive: true });
-  (function blinkLoop() {
-    const m = $("lexi");
-    if (m) { m.classList.add("blink"); setTimeout(() => m.classList.remove("blink"), 160); }
-    setTimeout(blinkLoop, 2600 + Math.random() * 2600);
-  })();
 
   // =====================================================
   //  BERANDA
@@ -1349,17 +1297,20 @@
       ["words", "var(--orange)", L("Kata saya", "My words"), L(`${custom.length} kata dari bacaanmu`, `${custom.length} words from your reading`)],
       ["progress", "var(--green)", L("Progres", "Progress"), L("Lihat kata yang sudah dikuasai", "See what you've mastered")]
     ];
+    const homeMood = !F.length ? "sleepy" : mastered && mastered === F.length ? "joy" : streak > 1 ? "excited" : "happy";
+    const bubble = !F.length ? L("Zzz… tambahkan kata dulu, yuk!", "Zzz… add some words first!")
+      : mastered && mastered === F.length ? L("Keren, semua kata dikuasai!", "Every word mastered. Nice!")
+      : streak > 1 ? L(`${streak} hari beruntun, lanjut!`, `${streak}-day streak, keep going!`)
+      : L("Ketuk aku untuk tips imbuhan", "Tap me for an affix tip");
     $("view-home").innerHTML = `
       <header class="hero">
         <div class="hero-top">
-          <div>
+          <div class="hero-text">
             <h1 class="hero-hi">${greet}</h1>
             <p class="hero-sub">${L("Siap mengenal kata baru hari ini?", "Ready to meet a few new words?")}</p>
           </div>
-          <div class="lexi-wrap">
-            <div class="hero-bubble" id="lexiBubble" role="status" aria-live="polite">${mastered && mastered === F.length ? L("Keren, semua kata dikuasai!", "Every word mastered. Nice!") : streak > 1 ? L(`${streak} hari beruntun, lanjut!`, `${streak}-day streak, keep going!`) : L("Mulai dari yang kecil", "Start small")}</div>
-            <button type="button" class="lexi" id="lexi" aria-label="${L("Ketuk Lexi untuk tips imbuhan", "Tap Lexi for an affix tip")}">${MASCOT_SVG}</button>
-          </div>
+          <div class="hero-bubble" id="lexiBubble" role="status" aria-live="polite">${bubble}</div>
+          <button type="button" class="lexi lexi-fig" id="lexi" aria-label="${L("Ketuk Lexi untuk tips imbuhan", "Tap Lexi for an affix tip")}"></button>
         </div>
         <div class="tiles">
           <button type="button" class="tile" data-go="progress">
@@ -1408,6 +1359,7 @@
           </button>`).join("")}
       </div>`;
     $("view-home").querySelectorAll("[data-go]").forEach(b => b.onclick = () => show(b.dataset.go));
+    if (window.Lexi) Lexi.set($("lexi"), homeMood, "book");
     $("lexi").onclick = mascotTap;
   }
 
