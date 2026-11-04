@@ -18,7 +18,7 @@
     --card: rgba(255,255,255,.86);
     --card2: rgba(255,255,255,.5);
     --mesh-base: #f7f7fb; --wash-top: #c4bcf7; --wash-mid: #e6e2fc;
-    --wash-text: #14102e; --wash-text2: #423a78; --seg-bg: rgba(255,255,255,.55); --bubble: rgba(255,255,255,.95); --wash-glow: rgba(255,236,190,.55);
+    --wash-text: #14102e; --wash-text2: #423a78; --seg-bg: rgba(255,255,255,.55); --bubble: rgba(255,255,255,.95); --hdr: rgba(255,255,255,.86); --step-off: rgba(255,255,255,.7); --wash-glow: rgba(255,236,190,.55);
     --lx-1: #b9a9ff; --lx-2: #8b77ee; --lx-belly: #e3dcff; --lx-shadow: rgba(80,60,170,.18);
     --glow: rgba(110,100,190,.10); --rim: rgba(255,255,255,.7);
     --card-solid: #ffffff; --card2-solid: #f7f7fa; --tab-on: #ffffff;
@@ -65,7 +65,7 @@
       --card: rgba(36,34,58,.62);
       --card2: rgba(44,42,68,.5);
       --mesh-base: #0c0b16; --wash-top: #322c74; --wash-mid: #1a173b;
-      --wash-text: #ffffff; --wash-text2: rgba(232,228,255,.86); --seg-bg: rgba(255,255,255,.14); --bubble: #2e2a5c; --wash-glow: rgba(255,214,140,.10);
+      --wash-text: #ffffff; --wash-text2: rgba(232,228,255,.86); --seg-bg: rgba(255,255,255,.14); --bubble: #2e2a5c; --hdr: rgba(26,24,46,.9); --step-off: rgba(255,255,255,.16); --wash-glow: rgba(255,214,140,.10);
       --lx-1: #a796ff; --lx-2: #7461e0; --lx-belly: #cfc6ff; --lx-shadow: rgba(0,0,0,.45);
       --glow: rgba(0,0,0,.35); --rim: rgba(255,255,255,.08);
       --card-solid: #1c1c1e; --card2-solid: #232326; --tab-on: rgba(255,255,255,.14);
@@ -100,7 +100,7 @@
       --card: rgba(36,34,58,.62);
       --card2: rgba(44,42,68,.5);
       --mesh-base: #0c0b16; --wash-top: #322c74; --wash-mid: #1a173b;
-      --wash-text: #ffffff; --wash-text2: rgba(232,228,255,.86); --seg-bg: rgba(255,255,255,.14); --bubble: #2e2a5c; --wash-glow: rgba(255,214,140,.10);
+      --wash-text: #ffffff; --wash-text2: rgba(232,228,255,.86); --seg-bg: rgba(255,255,255,.14); --bubble: #2e2a5c; --hdr: rgba(26,24,46,.9); --step-off: rgba(255,255,255,.16); --wash-glow: rgba(255,214,140,.10);
       --lx-1: #a796ff; --lx-2: #7461e0; --lx-belly: #cfc6ff; --lx-shadow: rgba(0,0,0,.45);
       --glow: rgba(0,0,0,.35); --rim: rgba(255,255,255,.08);
       --card-solid: #1c1c1e; --card2-solid: #232326; --tab-on: rgba(255,255,255,.14);
@@ -332,20 +332,67 @@
   .toolbar { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
 
   /* ================= stepper ================= */
-  .stepper { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin-bottom: 22px; }
+  .stepper { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-bottom: 8px; }
   .step {
-    display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 0; font-size: 12.5px; min-width: 0; color: var(--muted);
+    display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 4px 0 6px; font-size: 12.5px; min-width: 0;
+    color: var(--wash-text2); border: 0; background: none; text-align: left; cursor: pointer; border-radius: 6px;
   }
-  .step::before { content: ""; display: block; width: 100%; height: 4px; border-radius: 4px; background: var(--fill); transition: background .3s; }
+  .step:disabled { cursor: default; }
+  .step:not(:disabled):hover .t { color: var(--accent); }
+  .step:focus-visible { outline: 3px solid color-mix(in srgb, var(--accent) 45%, transparent); outline-offset: 2px; }
+  .step::before { content: ""; display: block; width: 100%; height: 5px; border-radius: 5px; background: var(--step-off); box-shadow: inset 0 0 0 .5px var(--line2); transition: background .3s; }
+  .stephint { font-size: 12px; color: var(--wash-text2); margin: 0 0 16px; opacity: .85; }
   .step .n { display: none; }
   .step .t { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
-  .step.current { color: var(--text); font-weight: 600; }
+  .step.current { color: var(--wash-text); font-weight: 650; }
   .step.current::before { background: var(--accent); }
   .step.done::before { background: var(--green); }
   .step.skip .t { text-decoration: line-through; opacity: .6; }
   .steptitle { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 14px; }
-  .steptitle b { display: block; font: 700 20px var(--display); letter-spacing: -.02em; }
-  .steptitle span { font-size: 13.5px; color: var(--muted); }
+  .steptitle b { display: block; font: 700 20px var(--display); letter-spacing: -.02em; color: var(--wash-text); }
+  .steptitle span { font-size: 14px; font-weight: 500; color: var(--wash-text2); }
+  .app .glabel { color: var(--wash-text2); font-weight: 500; }
+  .app .toolbar > .muted { color: var(--wash-text2); font-weight: 500; }
+  .glcount { font-variant-numeric: tabular-nums; }
+  /* kepala ronde: bar langkah + judul dalam satu kartu putih */
+  .roundhead {
+    background: var(--card-solid); border-radius: 22px; padding: 14px 18px 16px; margin-bottom: 16px;
+    box-shadow: 0 8px 26px var(--glow), inset 0 0 0 .5px var(--line2);
+  }
+  .app .roundhead .step { color: var(--muted); }
+  .app .roundhead .step.current { color: var(--text); }
+  .app .roundhead .step::before { background: var(--fill); box-shadow: none; }
+  .app .roundhead .step.current::before { background: var(--accent); }
+  .app .roundhead .step.done::before { background: var(--green); }
+  .app .roundhead .stephint { color: var(--muted); margin: 2px 0 0; }
+  .app .roundhead .steptitle { margin: 14px 0 0; padding-top: 14px; border-top: .5px solid var(--sep); }
+  .app .roundhead .steptitle b { color: var(--text); }
+  .app .roundhead .steptitle span { color: var(--muted); font-weight: 400; }
+  .roundhead + #roundStage > .group:first-child { margin-top: 0; }
+  /* daftar fokus */
+  .focusbar { box-shadow: 0 6px 20px var(--glow), inset 0 0 0 1.5px color-mix(in srgb, var(--orange) 55%, transparent); }
+  .focuschips { display: flex; flex-wrap: wrap; gap: 6px; padding: 2px 18px 14px; }
+  .fchip { display: inline-flex; align-items: center; gap: 8px; padding: 5px 10px 5px 12px; border-radius: 980px; background: rgba(255,149,0,.12); font-size: 14px; }
+  .fchip b { font-weight: 600; }
+  .fchip .boxes i { width: 8px; height: 8px; }
+  .carry { box-shadow: 0 6px 20px var(--glow), inset 0 0 0 1.5px color-mix(in srgb, var(--orange) 55%, transparent); }
+  .carry.ok { box-shadow: 0 6px 20px var(--glow), inset 0 0 0 1.5px color-mix(in srgb, var(--green) 55%, transparent); }
+  .mastered-note { margin-top: 10px; padding: 8px 12px; border-radius: 10px; background: var(--card-solid); font-size: 13.5px; font-weight: 600; color: var(--ok); }
+
+  .app .side .seg, .app .side .theme-btn { background: var(--fill); }
+  .app .side .seg button.active { box-shadow: 0 2px 6px rgba(0,0,0,.14), 0 0 0 .5px var(--line2); }
+  /* pemilih langkah ronde */
+  .stepchips { display: flex; flex-wrap: wrap; gap: 8px; padding: 14px 18px 4px; }
+  .stepchip {
+    display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px 6px 6px; border: 0; border-radius: 980px;
+    background: var(--fill2); color: var(--muted); font-size: 14px; font-weight: 500; cursor: pointer;
+    transition: background .2s, color .2s, transform .2s var(--spring);
+  }
+  .stepchip .stepno { width: 24px; height: 24px; font-size: 12px; background: var(--fill); color: var(--muted); }
+  .stepchip.on { background: var(--accent-soft); color: var(--accent); }
+  .stepchip.on .stepno { background: var(--accent); color: #fff; }
+  .stepchip:active { transform: scale(.95); }
+  .stepchip:focus-visible { outline: 3px solid color-mix(in srgb, var(--accent) 45%, transparent); outline-offset: 2px; }
 
   /* ================= soal ================= */
   .qcard { padding: 20px 22px; }
@@ -673,7 +720,7 @@
       position: sticky; top: 0; z-index: 5; height: auto; overflow: visible;
       top: env(safe-area-inset-top, 0px); padding-block: 10px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
       border-right: 0; border-bottom: .5px solid var(--sep);
-      background: color-mix(in srgb, var(--wash-top) 82%, var(--card-solid));
+      background: var(--hdr); box-shadow: 0 6px 20px var(--glow);
       -webkit-backdrop-filter: none; backdrop-filter: none;
     }
     .brand { padding: 0; gap: 10px; }
@@ -705,7 +752,7 @@
     .ico, .nav button.active .ico { color: inherit; width: 28px; height: 26px; }
     .ico svg { width: 24px; height: 24px; }
     main { padding-block: 22px calc(118px + env(safe-area-inset-bottom, 0px)); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
-    body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--wash-top); }
+    body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--hdr); }
     .vtitle { font-size: 30px; }
     .vsub { margin-bottom: 20px; }
     .options { grid-template-columns: 1fr; }

@@ -48,7 +48,8 @@
   const syns = f => f.synonyms || [];
   const ants = f => f.antonyms || [];
   const hasParts = f => !!(f.parts && f.parts.list && f.parts.list.length && f.forms.some(x => x.w === f.parts.w));
-  const hasSentence = f => !!(f.sentence && f.sentence.text && f.sentence.text.includes("___") && f.forms.some(x => x.w === f.sentence.answer));
+  const sentencesOf = f => [f.sentence].concat(f.more || []).filter(s => s && s.text && s.text.includes("___") && f.forms.some(x => x.w === s.answer));
+  const hasSentence = f => sentencesOf(f).length > 0;
   const posPill = p => `<span class="pos pos-${p}">${p}</span>`;
 
   const SUFFIX_HINTS = AFFIXES.suffix
@@ -98,8 +99,8 @@
     };
   }
 
-  function qFill(fam) {
-    const s = fam.sentence;
+  function qFill(fam, idx) {
+    const s = sentencesOf(fam)[idx || 0] || sentencesOf(fam)[0];
     const ans = fam.forms.find(f => f.w === s.answer);
     // kata yang cuma punya 1 bentuk: pengecoh diambil dari kata lain dengan jenis yang sama
     const opts = fam.forms.slice();
@@ -109,6 +110,12 @@
       if (extra.length < 3) extra = extra.concat(shuffle(poolForms().filter(f => okf(f) && f.pos !== ans.pos)));
       if (!extra.length) extra = shuffle(allForms().filter(f => okf(f) && f.pos === ans.pos)).slice(0, 1);
       for (const x of extra) { if (opts.length >= 4) break; if (!opts.some(o => o.w.toLowerCase() === x.w.toLowerCase())) opts.push(x); }
+    }
+    // kalau masih kurang dari 4 pilihan: pengecoh dari kata lain dengan jenis kata BERBEDA (jelas salah di posisi ini)
+    if (opts.length < 4) {
+      const okd = f => f.fam !== fam.id && f.pos !== ans.pos && uniquePos(f.w) && !opts.some(o => o.w.toLowerCase() === f.w.toLowerCase());
+      const more = shuffle(poolForms().filter(okd)).concat(shuffle(allForms().filter(okd)));
+      for (const x of more) { if (opts.length >= 4) break; if (!opts.some(o => o.w.toLowerCase() === x.w.toLowerCase())) opts.push(x); }
     }
     return {
       tag: "Isi kalimat",
@@ -207,13 +214,229 @@
     };
   }
 
+
+  // ---------- jenis soal tambahan (bank soal lebih besar) ----------
+  const LL = (id, en) => (window.VL_LANG === "en" ? en : id);
+  const low_ = w => String(w).toLowerCase();
+  const famById = id => fams().find(f => f.id === id);
+  const article = w => (/^[aeiou]/i.test(w) ? "an" : "a");
+  function takeDistinct(src, n, key, seed) {
+    const out = [], seen = new Set((seed || []).map(key));
+    for (const x of src) { if (out.length >= n) break; const k = key(x); if (!seen.has(k)) { seen.add(k); out.push(x); } }
+    return out;
+  }
+  // kata yang hanya punya satu jenis kata di seluruh data (aman untuk soal jenis kata)
+  function uniquePos(w) {
+    const set = new Set(allForms().filter(f => low_(f.w) === low_(w)).map(f => f.pos));
+    return set.size === 1;
+  }
+  // jenis kata yang muncul tepat sekali di satu keluarga (untuk soal "bentuk X dari Y")
+  const formPositions = fam => fam.forms.length < 2 ? [] : POS.filter(p => fam.forms.filter(f => f.pos === p).length === 1);
+  const uniqueArti = form => poolForms().concat(allForms()).filter(f => f.arti === form.arti && low_(f.w) !== low_(form.w)).length === 0;
+
+  function qMeaning(form) {
+    const fam = famById(form.fam);
+    const sameFam = shuffle((fam ? fam.forms : []).filter(f => f.w !== form.w && f.arti !== form.arti).map(f => ({ ...f, fam: form.fam })));
+    const others = shuffle(poolForms().filter(f => f.fam !== form.fam && f.arti !== form.arti));
+    const backup = shuffle(allForms().filter(f => f.fam !== form.fam && f.arti !== form.arti));
+    const picks = takeDistinct(sameFam.slice(0, 1).concat(others, backup), 3, f => f.arti, [form]);
+    const opts = shuffle([form, ...picks]);
+    return {
+      tag: LL("Arti kata", "Meaning"),
+      prompt: LL(`Apa arti <b>${esc(form.w)}</b>?`, `What does <b>${esc(form.w)}</b> mean?`),
+      sub: LL(`Jenis katanya: ${form.pos}. Pilih arti yang paling tepat.`, `It's ${article(form.pos)} ${form.pos}. Choose the best meaning.`),
+      options: opts.map(o => ({ label: o.arti, correct: o.w === form.w })),
+      explain: `<b>${esc(form.w)}</b> (${form.pos}) = ${esc(form.arti)}.` +
+        `<ul>${picks.map(o => `<li>${esc(o.arti)} = <b>${esc(o.w)}</b> (${o.pos})</li>`).join("")}</ul>`
+    };
+  }
+
+  function qReverse(form) {
+    const fam = famById(form.fam);
+    const sameFam = shuffle((fam ? fam.forms : []).filter(f => f.w !== form.w).map(f => ({ ...f, fam: form.fam })));
+    const others = shuffle(poolForms().filter(f => f.fam !== form.fam && f.pos === form.pos))
+      .concat(shuffle(allForms().filter(f => f.fam !== form.fam && f.pos === form.pos)));
+    const picks = takeDistinct(sameFam.slice(0, 2).concat(others), 3, f => low_(f.w), [form]);
+    const opts = shuffle([form, ...picks]);
+    return {
+      tag: LL("Arti kata", "Meaning"),
+      prompt: LL(`Kata mana yang berarti “${esc(form.arti)}”?`, `Which word means “${esc(form.arti)}”?`),
+      sub: LL("Hati-hati, bentuk dari keluarga kata yang sama ikut jadi pilihan.", "Careful: other forms of the same word family are among the options."),
+      options: opts.map(o => ({ label: o.w, correct: o.w === form.w })),
+      explain: `“${esc(form.arti)}” = <b>${esc(form.w)}</b> (${form.pos}).` +
+        `<ul>${picks.map(o => `<li>${esc(o.w)} = ${o.pos} (${esc(o.arti)})</li>`).join("")}</ul>`
+    };
+  }
+
+  function qPosOf(form) {
+    const hint = suffixHint(form.w, form.pos);
+    return {
+      tag: LL("Jenis kata", "Word type"),
+      prompt: LL(`<b>${esc(form.w)}</b> termasuk jenis kata apa?`, `What type of word is <b>${esc(form.w)}</b>?`),
+      sub: LL("Lihat akhirannya.", "Look at its ending."),
+      options: POS.map(p => ({ label: p, correct: p === form.pos })),
+      explain: `<b>${esc(form.w)}</b> = ${form.pos} (${esc(form.arti)}).${hint ? " Petunjuk: " + hint + "." : ""}`
+    };
+  }
+
+  function qFormOf(fam, pos) {
+    const ans = fam.forms.find(f => f.pos === pos);
+    const base = rand(fam.forms.filter(f => f.pos !== pos));
+    let opts = shuffle(fam.forms.filter(f => f.w !== ans.w)).slice(0, 3).map(f => ({ ...f, fam: fam.id }));
+    if (opts.length < 3) {
+      const extra = shuffle(poolForms().filter(f => f.fam !== fam.id && f.pos !== pos)).concat(shuffle(allForms().filter(f => f.fam !== fam.id && f.pos !== pos)));
+      opts = opts.concat(takeDistinct(extra, 3 - opts.length, f => low_(f.w), opts.concat([ans])));
+    }
+    const all = shuffle([{ ...ans, fam: fam.id }, ...opts]);
+    return {
+      tag: LL("Bentuk kata", "Word form"),
+      prompt: LL(`Bentuk <b>${pos}</b> dari <b>${esc(base.w)}</b> adalah…`, `The <b>${pos}</b> form of <b>${esc(base.w)}</b> is…`),
+      sub: LL(`${base.w} = ${base.pos} (${base.arti}). Cari yang ${POS_ID[pos]}.`, `${base.w} is ${article(base.pos)} ${base.pos}. Find the ${pos}.`),
+      options: all.map(o => ({ label: o.w, correct: o.w === ans.w })),
+      explain: `<b>${esc(ans.w)}</b> = ${pos} (${esc(ans.arti)}).` +
+        `<ul>${all.filter(o => o.w !== ans.w).map(o => `<li>${esc(o.w)} = ${o.pos} (${esc(o.arti)})</li>`).join("")}</ul>`
+    };
+  }
+
+  function qOdd(form) {
+    const okPos = f => f.pos !== form.pos && uniquePos(f.w);
+    const byPos = src => POS.filter(p => p !== form.pos).map(p => [p, src.filter(f => f.pos === p && okPos(f))]).filter(([, l]) => l.length >= 3);
+    let groups = byPos(poolForms());
+    if (!groups.length) groups = byPos(allForms());
+    const [X, list] = rand(groups);
+    const three = takeDistinct(shuffle(list), 3, f => low_(f.w), [form]);
+    const opts = shuffle([form, ...three]);
+    return {
+      tag: LL("Jenis kata", "Word type"),
+      prompt: LL(`Mana yang <b>bukan</b> ${X}?`, `Which one is <b>not</b> ${article(X)} ${X}?`),
+      sub: LL(`Tiga pilihan adalah ${POS_ID[X]}, satu tidak.`, `Three options are ${X}s, one isn't.`),
+      options: opts.map(o => ({ label: o.w, correct: o.w === form.w })),
+      explain: `<b>${esc(form.w)}</b> = ${form.pos} (${esc(form.arti)}), bukan ${X}.` +
+        `<ul>${three.map(o => `<li>${esc(o.w)} = ${o.pos} (${esc(o.arti)})</li>`).join("")}</ul>`
+    };
+  }
+
+  const KIND_NAME = { prefix: ["prefix (awalan)", "prefix"], root: ["root (akar kata)", "root"], suffix: ["suffix (akhiran)", "suffix"] };
+  const affixTokens = item => item.form.split("/").map(t => t.trim().toLowerCase().replace(/-/g, "")).filter(Boolean);
+  function usesAffix(kind, item, word) {
+    const w = low_(word);
+    return affixTokens(item).some(t => kind === "prefix" ? w.startsWith(t) : kind === "suffix" ? w.endsWith(t) : w.includes(t));
+  }
+  const exWords = item => item.ex.split(",").map(x => x.trim()).filter(Boolean);
+
+  function qAffixWord(kind, item) {
+    const ans = rand(exWords(item).filter(w => usesAffix(kind, item, w)));
+    const pool_ = shuffle(AFFIXES[kind].filter(o => o !== item).flatMap(o => exWords(o).map(w => ({ w, item: o }))))
+      .filter(x => !usesAffix(kind, item, x.w));
+    const picks = takeDistinct(pool_, 3, x => low_(x.w), [{ w: ans }]);
+    const opts = shuffle([{ w: ans, item }, ...picks]);
+    const [nameId, nameEn] = KIND_NAME[kind];
+    return {
+      tag: LL("Imbuhan", "Affixes"),
+      prompt: LL(`Kata mana yang memakai ${nameId} <b>${esc(item.form)}</b>?`, `Which word uses the ${nameEn} <b>${esc(item.form)}</b>?`),
+      sub: LL(`${item.form} = “${item.meaning}”`, `${item.form} = “${item.meaning}” (Indonesian)`),
+      options: opts.map(o => ({ label: o.w, correct: o.w === ans })),
+      explain: `<b>${esc(ans)}</b> memakai <b>${esc(item.form)}</b> (${esc(item.meaning)}).` +
+        `<ul>${picks.map(o => `<li>${esc(o.w)} memakai ${esc(o.item.form)} (${esc(o.item.meaning)})</li>`).join("")}</ul>`
+    };
+  }
+
+  function qAffixRev(kind, item) {
+    if (kind === "suffix") {
+      const others = takeDistinct(shuffle(AFFIXES.suffix.filter(o => o.pos !== item.pos)), 3, o => o.pos + "|" + o.form, []);
+      const opts = shuffle([item, ...others]);
+      return {
+        tag: LL("Imbuhan", "Affixes"),
+        prompt: LL(`Akhiran mana yang biasanya membentuk <b>${item.pos}</b>?`, `Which suffix usually forms ${article(item.pos)} <b>${item.pos}</b>?`),
+        sub: LL(`${item.pos} = ${POS_ID[item.pos]}`, "Suffix (ending)"),
+        options: opts.map(o => ({ label: o.form, correct: o === item })),
+        explain: `<b>${esc(item.form)}</b> → ${item.pos}, contoh: <i>${esc(item.ex)}</i>.` +
+          `<ul>${others.map(o => `<li>${esc(o.form)} → ${o.pos} (${esc(o.ex)})</li>`).join("")}</ul>`
+      };
+    }
+    const others = takeDistinct(shuffle(AFFIXES[kind].filter(o => o.meaning !== item.meaning)), 3, o => o.meaning, [item]);
+    const opts = shuffle([item, ...others]);
+    const [nameId, nameEn] = KIND_NAME[kind];
+    return {
+      tag: LL("Imbuhan", "Affixes"),
+      prompt: LL(`${nameId[0].toUpperCase() + nameId.slice(1)} mana yang artinya “${esc(item.meaning)}”?`, `Which ${nameEn} means “${esc(item.meaning)}”?`),
+      sub: LL(`Contoh kata: ${item.ex.split(",")[0].trim()}`, `Example word: ${item.ex.split(",")[0].trim()}`),
+      options: opts.map(o => ({ label: o.form, correct: o === item })),
+      explain: `<b>${esc(item.form)}</b> = “${esc(item.meaning)}”, contoh: <i>${esc(item.ex)}</i>.` +
+        `<ul>${others.map(o => `<li>${esc(o.form)} = ${esc(o.meaning)}</li>`).join("")}</ul>`
+    };
+  }
+
+  function qRelRev(fam, kind) {
+    const list = kind === "syn" ? syns(fam) : ants(fam);
+    const ans = rand(list);
+    const fw = focusOf(fam);
+    const tp = (fam.forms.find(x => x.w === fw) || fam.forms[0]).pos;
+    const posOf = f => (f.forms.find(x => x.w === focusOf(f)) || f.forms[0]).pos;
+    const related = f => syns(f).concat(ants(f)).some(x => low_(x.w) === low_(ans.w)) || f.forms.some(x => low_(x.w) === low_(ans.w));
+    const src = shuffle(pool().filter(f => f.id !== fam.id && posOf(f) === tp && !related(f)))
+      .concat(shuffle(fams().filter(f => f.id !== fam.id && posOf(f) === tp && !related(f))))
+      .concat(shuffle(fams().filter(f => f.id !== fam.id && !related(f))));
+    const picks = takeDistinct(src, 3, f => low_(focusOf(f)), [fam]);
+    const opts = shuffle([fam, ...picks]);
+    const isSyn = kind === "syn";
+    return {
+      tag: isSyn ? LL("Sinonim", "Synonym") : LL("Antonim", "Antonym"),
+      prompt: LL(`<b>${esc(ans.w)}</b> adalah ${isSyn ? "sinonim" : "antonim"} dari…`, `<b>${esc(ans.w)}</b> is ${isSyn ? "a synonym" : "an antonym"} of…`),
+      sub: ans.arti ? LL(`${ans.w} = ${ans.arti}`, `${ans.w} = ${ans.arti} (Indonesian)`) : "",
+      options: opts.map(f => ({ label: focusOf(f), correct: f === fam })),
+      explain: `<b>${esc(fw)}</b> (${esc(focusArti(fam))}) ${isSyn ? "≈" : "↔"} <b>${esc(ans.w)}</b>${ans.arti ? ` (${esc(ans.arti)})` : ""}.` +
+        `<ul>${picks.map(f => `<li>${esc(focusOf(f))} = ${esc(focusArti(f))}</li>`).join("")}</ul>`
+    };
+  }
+
   const C = {
     pos: f => ({ key: "pos:" + f.w + (fams().some(x => x.id === f.fam && x.forms.filter(y => y.w === f.w).length > 1) ? "|" + f.pos : ""), fam: f.fam, make: () => qPos(f) }),
-    fill: f => ({ key: "fill:" + f.id, fam: f.id, make: () => qFill(f) }),
+    fill: (f, i) => ({ key: "fill:" + f.id + (i ? "#" + i : ""), fam: f.id, make: () => qFill(f, i || 0) }),
+    mean: f => ({ key: "mean:" + f.w, fam: f.fam, make: () => qMeaning(f) }),
+    rev: f => ({ key: "rev:" + f.w, fam: f.fam, make: () => qReverse(f) }),
+    posof: f => ({ key: "posof:" + f.w, fam: f.fam, make: () => qPosOf(f) }),
+    formof: (fam, pos) => ({ key: "formof:" + fam.id + ":" + pos, fam: fam.id, make: () => qFormOf(fam, pos) }),
+    odd: f => ({ key: "odd:" + f.w, fam: f.fam, make: () => qOdd(f) }),
+    affixw: (k, a) => ({ key: "affixw:" + a.form, fam: null, make: () => qAffixWord(k, a) }),
+    affixr: (k, a) => ({ key: "affixr:" + a.form, fam: null, make: () => qAffixRev(k, a) }),
+    relr: (f, kind) => ({ key: kind + "r:" + f.id, fam: f.id, make: () => qRelRev(f, kind) }),
     affix: (k, a) => ({ key: "affix:" + a.form, fam: null, make: () => qAffix(k, a) }),
     parts: f => ({ key: "parts:" + f.id, fam: f.id, make: () => qParts(f) }),
     rel: (f, kind) => ({ key: kind + ":" + f.id, fam: f.id, make: () => qRel(f, kind) })
   };
+
+  function posVariants(f) {
+    const out = [];
+    f.forms.forEach(x => {
+      const form = { ...x, fam: f.id };
+      out.push(C.pos(form));
+      if (uniquePos(x.w)) { out.push(C.posof(form)); out.push(C.odd(form)); }
+    });
+    formPositions(f).forEach(p => out.push(C.formof(f, p)));
+    return out;
+  }
+  function meanVariants(f) {
+    const out = [];
+    f.forms.forEach(x => {
+      const form = { ...x, fam: f.id };
+      out.push(C.mean(form));
+      if (uniqueArti(form)) out.push(C.rev(form));
+    });
+    return out;
+  }
+  function affixVariants(kind, item) {
+    const out = [C.affix(kind, item), C.affixr(kind, item)];
+    if (exWords(item).some(w => usesAffix(kind, item, w))) out.push(C.affixw(kind, item));
+    return out;
+  }
+  const fillVariants = f => sentencesOf(f).map((_, i) => C.fill(f, i));
+  function relVariants(f) {
+    const out = [];
+    if (syns(f).length) out.push(C.rel(f, "syn"), C.relr(f, "syn"));
+    if (ants(f).length) out.push(C.rel(f, "ant"), C.relr(f, "ant"));
+    return out;
+  }
 
   function relatedAffixes(families) {
     const seen = new Set(), out = [];
@@ -225,20 +448,20 @@
   }
   const allAffixes = () => ["prefix", "root", "suffix"].flatMap(k => AFFIXES[k].map(item => ({ kind: k, item })));
 
-  function candidates(mode) {
-    const P = pool(), c = [], want = m => mode === "mix" || mode === m;
-    if (want("pos")) P.forEach(f => f.forms.forEach(x => c.push(C.pos({ ...x, fam: f.id }))));
-    if (want("fill")) P.filter(hasSentence).forEach(f => c.push(C.fill(f)));
+  function candidates(mode, only) {
+    const P = only && only.length ? only : pool(), c = [], want = m => mode === "mix" || mode === m;
+    if (want("mean")) P.forEach(f => c.push(...meanVariants(f)));
+    if (want("pos")) P.forEach(f => c.push(...posVariants(f)));
+    if (want("fill")) P.filter(hasSentence).forEach(f => c.push(...fillVariants(f)));
     if (want("affix")) {
-      let af = source() === "mine" ? relatedAffixes(P) : allAffixes();
+      let af = only && only.length ? relatedAffixes(P) : source() === "mine" ? relatedAffixes(P) : allAffixes();
       if (!af.length && mode === "affix") af = allAffixes();
-      af.forEach(m => c.push(C.affix(m.kind, m.item)));
+      af.forEach(m => c.push(...affixVariants(m.kind, m.item)));
     }
     if (want("parts")) P.filter(hasParts).forEach(f => c.push(C.parts(f)));
     if (want("rel")) P.forEach(f => {
-      if (mode === "mix" && !isMastered(f)) return;
-      if (syns(f).length) c.push(C.rel(f, "syn"));
-      if (ants(f).length) c.push(C.rel(f, "ant"));
+      if (mode === "mix" && !isMastered(f) && !(only && only.length)) return;
+      c.push(...relVariants(f));
     });
     return c;
   }
@@ -324,13 +547,52 @@
   // =====================================================
   const STEPS = [
     { id: "intro", title: "Kenalan", desc: "Baca keluarga kata: semua bentuknya, jenis katanya, arti, dan potongan katanya. Belum ada soal." },
+    { id: "mean", title: "Arti kata", desc: "Cocokkan kata dengan artinya, dari dua arah." },
     { id: "affix", title: "Imbuhan", desc: "Tebak arti prefix, root, dan suffix yang dipakai kata-kata ini." },
     { id: "parts", title: "Pecah kata", desc: "Dari potongan-potongannya, tebak arti kata utuhnya." },
     { id: "pos", title: "Jenis kata", desc: "Bedakan noun, verb, adjective, dan adverb dari bentuknya." },
     { id: "fill", title: "Isi kalimat", desc: "Pilih bentuk kata yang pas di dalam kalimat." },
     { id: "rel", title: "Sinonim & antonim", desc: "Pilih padanan atau lawan kata dari kata-kata di ronde ini, ditambah ulangan kata yang sudah dikuasai." }
   ];
+  // ---------- daftar fokus: kata yang belum dikuasai, dibawa ke semua mode ----------
+  function focusIds() { return Array.isArray(settings.focus) ? settings.focus : []; }
+  function focusFams() {
+    const ids = new Set(focusIds());
+    return fams().filter(f => ids.has(f.id) && !isMastered(f));
+  }
+  function saveFocus(famsList) {
+    settings.focus = famsList.map(f => f.id);
+    ls.set(SETTINGS, settings);
+    // kartu hafalan: tambahkan semua bentuk kata fokus, lalu jadikan dek "Fokus ronde"
+    if (window.VL_syncFocusCards) {
+      return window.VL_syncFocusCards(famsList.flatMap(f => f.forms.map(x => ({ w: x.w, pos: x.pos, arti: x.arti }))));
+    }
+    return 0;
+  }
+  // gabungkan kata yang belum dikuasai dari ronde ini dengan fokus sebelumnya (yang masih belum dikuasai)
+  function carryToFocus(words) {
+    const keep = focusFams();
+    const add = words.filter(f => !isMastered(f) && !keep.some(k => k.id === f.id));
+    const all = keep.concat(add);
+    const newCards = saveFocus(all);
+    return { all, add, newCards };
+  }
+  let freeFocus = null; // null = otomatis (fokus kalau ada kata fokus)
+  const freeUsesFocus = () => (freeFocus === null ? focusFams().length > 0 : freeFocus) && focusFams().length > 0;
+
   let roundSize = 5, round = null;
+  function enabledSteps() {
+    const ids = Array.isArray(settings.steps) ? settings.steps.filter(id => STEPS.some(s => s.id === id)) : [];
+    return new Set(ids.length ? ids : STEPS.map(s => s.id));
+  }
+  function setStepOn(id, on) {
+    const cur = enabledSteps();
+    on ? cur.add(id) : cur.delete(id);
+    if (!cur.size) return false;
+    settings.steps = STEPS.map(s => s.id).filter(x => cur.has(x));
+    ls.set(SETTINGS, settings);
+    return true;
+  }
   let roundPick = "manual", picked = null, pickedSrc = null, pickedKnown = new Set();
 
   const pool_ = () => pool();
@@ -348,34 +610,31 @@
 
   function buildRound(words) {
     const n = words.length;
-    const items = { intro: [{ intro: true }], affix: [], parts: [], pos: [], fill: [], rel: [] };
+    const items = { intro: [{ intro: true }], mean: [], affix: [], parts: [], pos: [], fill: [], rel: [] };
+    items.mean = shuffle(words.flatMap(f => shuffle(meanVariants(f)).slice(0, 1)));
 
     const seen = new Set();
     words.filter(hasParts).forEach(f => f.parts.list.forEach(([p]) => {
       const m = affixFor(p);
-      if (m && !seen.has(m.item.form)) { seen.add(m.item.form); items.affix.push(C.affix(m.kind, m.item)); }
+      if (m && !seen.has(m.item.form)) { seen.add(m.item.form); items.affix.push(rand(affixVariants(m.kind, m.item))); }
     }));
     items.affix = shuffle(items.affix).slice(0, Math.min(8, Math.max(4, n)));
     if (items.affix.length < 2) {
       const extra = shuffle(["prefix", "root", "suffix"].flatMap(k => AFFIXES[k].map(item => ({ kind: k, item })))).filter(x => !seen.has(x.item.form));
-      while (items.affix.length < 2 && extra.length) { const x = extra.pop(); items.affix.push(C.affix(x.kind, x.item)); }
+      while (items.affix.length < 2 && extra.length) { const x = extra.pop(); items.affix.push(rand(affixVariants(x.kind, x.item))); }
     }
 
     items.parts = words.filter(hasParts).map(C.parts);
-    items.pos = words.map(f => C.pos({ ...rand(f.forms), fam: f.id }));
-    items.fill = words.filter(hasSentence).map(C.fill);
+    items.pos = words.map(f => rand(posVariants(f)));
+    items.fill = words.filter(hasSentence).map(f => rand(fillVariants(f)));
 
     // Semua kata di ronde ini yang punya sinonim/antonim, ditambah sedikit ulangan kata lain yang sudah dikuasai
     const hasRel = f => syns(f).length || ants(f).length;
     const review = shuffle(pool().filter(f => !words.includes(f) && isMastered(f) && hasRel(f))).slice(0, Math.min(3, Math.ceil(n / 3)));
-    items.rel = words.filter(hasRel).concat(review).map(f => {
-      const kinds = [];
-      if (syns(f).length) kinds.push("syn");
-      if (ants(f).length) kinds.push("ant");
-      return C.rel(f, rand(kinds));
-    });
+    items.rel = words.filter(hasRel).concat(review).map(f => rand(relVariants(f)));
 
-    return { words, steps: STEPS.map(s => ({ ...s, items: items[s.id], right: 0, done: 0 })), si: 0, qi: 0, phase: "run", answered: false };
+    const on = enabledSteps();
+    return { words, steps: STEPS.filter(s => on.has(s.id)).map(s => ({ ...s, items: items[s.id], right: 0, done: 0 })), si: 0, qi: 0, phase: "run", answered: false, missed: new Set() };
   }
 
   function skipEmpty() {
@@ -397,9 +656,9 @@
   function chosenWords() {
     return roundPick === "manual" ? pool().filter(f => picked.has(f.id)) : pickWords(Math.min(roundSize, pool().length));
   }
-  function startRound() {
+  function startRound(onlyWords) {
     ensurePick();
-    const words = chosenWords();
+    const words = Array.isArray(onlyWords) && onlyWords.length ? onlyWords : chosenWords();
     if (!words.length) return;
     round = buildRound(words); skipEmpty(); renderRound(); window.scrollTo(0, 0);
   }
@@ -417,31 +676,43 @@
   }
 
   function stepperHTML() {
-    return `<div class="stepper">${round.steps.map((s, i) => {
+    return `<div class="stepper" style="grid-template-columns:repeat(${round.steps.length},1fr)">${round.steps.map((s, i) => {
       let cls = "";
-      if (round.phase === "summary") cls = s.items.length ? "done" : "skip";
+      const touched = s.id === "intro" ? s.seen : s.done > 0;
+      if (round.phase === "summary") cls = s.items.length && touched ? "done" : "skip";
       else if (i === round.si) cls = "current";
+      else if (touched) cls = "done";
       else if (i < round.si) cls = s.items.length ? "done" : "skip";
-      return `<div class="step ${cls}"><span class="n">${cls === "done" ? "✓" : i + 1}</span><span class="t">${esc(s.title)}</span></div>`;
+      const can = s.items.length > 0 && !(round.phase !== "summary" && i === round.si);
+      return `<button type="button" class="step ${cls}" data-si="${i}"${can ? "" : " disabled"} title="${esc(s.title)}"><span class="n">${cls === "done" ? "✓" : i + 1}</span><span class="t">${esc(s.title)}</span></button>`;
     }).join("")}</div>`;
+  }
+  function jumpTo(i) {
+    if (!round || !round.steps[i] || !round.steps[i].items.length) return;
+    activeQuiz = null;
+    round.si = i; round.qi = 0; round.answered = false; round.phase = "run";
+    window.scrollTo(0, 0);
+    renderRound();
   }
 
   function renderRound() {
     const host = $("view-round");
     if (!round) return renderStart(host);
     if (round.answered) return advance(); // pindah tab setelah menjawab → lanjut otomatis
-    host.innerHTML = stepperHTML() + `<div id="roundStage"></div>`;
+    host.innerHTML = `<div class="roundhead" id="roundHead">${stepperHTML()}<div class="stephint">Ketuk langkah di atas untuk pindah langsung.</div></div><div id="roundStage"></div>`;
+    host.querySelectorAll(".stepper .step[data-si]").forEach(b => b.onclick = () => jumpTo(+b.dataset.si));
     const stage = $("roundStage");
     if (round.phase === "summary") return renderSummary(stage);
     const step = round.steps[round.si];
     stage.innerHTML = `<div class="steptitle"><div><b>Langkah ${round.si + 1} · ${esc(step.title)}</b><span>${esc(step.desc)}</span></div><button type="button" class="btn small ghost" id="quitRound">Akhiri</button></div><div id="roundBody"></div>`;
     $("quitRound").onclick = () => { if (confirm("Akhiri ronde ini? Jawaban yang sudah masuk tetap tercatat.")) { round = null; activeQuiz = null; renderRound(); } };
+    $("roundHead").appendChild(stage.querySelector(".steptitle"));
     const body = $("roundBody");
     if (step.id === "intro") return renderIntro(body);
     mountQuiz(body, step.items[round.qi], {
       meta: `Soal ${round.qi + 1} dari ${step.items.length}`,
       nextLabel: nextLabel(),
-      onAnswer: ok => { step.done++; if (ok) step.right++; round.answered = true; },
+      onAnswer: ok => { const c = step.items[round.qi]; step.done++; if (ok) step.right++; else if (c && c.fam) round.missed.add(c.fam); round.answered = true; },
       onNext: advance
     });
   }
@@ -450,7 +721,7 @@
     ensurePick();
     const P = pool();
     if (!P.length) {
-      host.innerHTML = `<h2 class="vtitle">Ronde terpandu</h2><p class="vsub">Satu ronde melatih kata pilihanmu lewat 6 langkah berurutan.</p>${sourceBar()}${emptyState()}`;
+      host.innerHTML = `<h2 class="vtitle">Ronde terpandu</h2><p class="vsub">Satu ronde melatih kata pilihanmu lewat langkah-langkah berurutan.</p>${sourceBar()}${emptyState()}`;
       bindSource(() => renderStart(host)); bindEmpty(host, () => renderStart(host));
       return;
     }
@@ -458,7 +729,7 @@
     const shownSize = Math.max(1, Math.min(roundSize, P.length));
     host.innerHTML = `
       <h2 class="vtitle">Ronde terpandu</h2>
-      <p class="vsub">Satu ronde melatih kata pilihanmu lewat 6 langkah berurutan, dari mengenali bentuknya sampai memakainya di kalimat.</p>
+      <p class="vsub">Satu ronde melatih kata pilihanmu lewat langkah-langkah berurutan, dari mengenali bentuknya sampai memakainya di kalimat.</p>
       ${sourceBar()}
       <div class="glabel">Kata untuk ronde ini</div>
       <div class="group">
@@ -467,7 +738,7 @@
             <button type="button" data-p="manual" class="${roundPick === "manual" ? "active" : ""}">Pilih sendiri</button>
             <button type="button" data-p="random" class="${roundPick === "random" ? "active" : ""}">Acak</button>
           </div>
-          ${roundPick === "manual" ? `<div class="btns"><button type="button" class="btn small" id="pickAll">Pilih semua</button><button type="button" class="btn small" id="pickNone">Kosongkan</button></div>` : ""}
+          ${roundPick === "manual" ? `<div class="btns">${P.some(f => !isMastered(f)) ? `<button type="button" class="btn small" id="pickWeak">Pilih yang belum dikuasai</button>` : ""}<button type="button" class="btn small" id="pickAll">Pilih semua</button><button type="button" class="btn small" id="pickNone">Kosongkan</button></div>` : ""}
         </div>
         ${roundPick === "manual" ? `
           <div class="checklist">${P.map(f => `
@@ -479,10 +750,20 @@
             <div class="numbox"><button type="button" class="btn small" id="nMinus" aria-label="Kurangi">−</button><input type="number" id="nInput" min="1" max="${P.length}" value="${shownSize}" inputmode="numeric"><button type="button" class="btn small" id="nPlus" aria-label="Tambah">+</button></div>
           </div>`}
       </div>
+      <div class="glabel between"><span>Langkah yang dipakai</span><span class="glcount">${enabledSteps().size}/${STEPS.length}</span></div>
+      <div class="group">
+        <div class="stepchips">${STEPS.map((s, i) => `<button type="button" class="stepchip${enabledSteps().has(s.id) ? " on" : ""}" data-step="${s.id}" aria-pressed="${enabledSteps().has(s.id)}"><span class="stepno">${i + 1}</span><span>${esc(s.title)}</span></button>`).join("")}</div>
+        <div class="row small muted">Matikan langkah yang tidak perlu, misalnya Kenalan kalau katanya sudah akrab. Saat ronde berjalan, ketuk bar langkah di atas untuk pindah.</div>
+      </div>
       <div class="actions"><span class="keys" id="pickInfo"></span><button type="button" class="btn primary big" id="startBtn">Mulai ronde</button></div>
-      <details class="group det steps-det"><summary>Lihat urutan 6 langkah</summary>
+      <details class="group det steps-det"><summary>Lihat isi tiap langkah</summary>
         ${STEPS.map((s, i) => `<div class="row"><span class="stepno">${i + 1}</span><div><div class="rt">${esc(s.title)}</div><div class="rd">${esc(s.desc)}</div></div></div>`).join("")}
       </details>`;
+    host.querySelectorAll(".stepchip").forEach(b => b.onclick = () => {
+      const on = !b.classList.contains("on");
+      if (!setStepOn(b.dataset.step, on)) return;
+      renderStart(host);
+    });
 
     const refresh = () => {
       const n = count();
@@ -496,6 +777,7 @@
       host.querySelectorAll(".crow input").forEach(cb => cb.onchange = () => { cb.checked ? picked.add(cb.dataset.id) : picked.delete(cb.dataset.id); refresh(); });
       $("pickAll").onclick = () => { P.forEach(f => picked.add(f.id)); renderStart(host); };
       $("pickNone").onclick = () => { picked.clear(); renderStart(host); };
+      if ($("pickWeak")) $("pickWeak").onclick = () => { picked.clear(); const F = focusFams().filter(f => P.includes(f)); (F.length ? F : P.filter(f => !isMastered(f))).forEach(f => picked.add(f.id)); renderStart(host); };
     } else {
       const inp = $("nInput");
       const setN = v => { roundSize = Math.max(1, Math.min(P.length, Math.round(+v) || 1)); inp.value = roundSize; refresh(); };
@@ -541,27 +823,50 @@
   function renderIntro(body) {
     body.innerHTML = round.words.map(wordCard).join("") +
       `<div class="actions"><span class="keys">Perhatikan akhiran tiap bentuk dan jenis katanya.</span><button type="button" class="btn primary" id="introNext">Sudah dibaca, lanjut</button></div>`;
+    round.steps[round.si].seen = true;
     $("introNext").onclick = advance;
   }
 
   function renderSummary(stage) {
+    if (!round.carried) round.carried = carryToFocus(round.words);
+    const carried = round.carried;
+    const unm = round.words.filter(f => !isMastered(f));
     const sc = round.steps.filter(s => s.id !== "intro");
     const right = sc.reduce((t, s) => t + s.right, 0), total = sc.reduce((t, s) => t + s.done, 0);
     stage.innerHTML = `
       <div class="group sumhead"><div class="sumbig">${right}<small>/${total}</small></div><div><div class="rt">Ronde selesai</div><div class="rd">${total ? Math.round(100 * right / total) : 0}% jawaban benar</div></div></div>
+      ${unm.length ? `<div class="group carry">
+        <div class="row col"><div class="rt">${unm.length} kata belum dikuasai, otomatis dibawa ke mode lain</div>
+          <div class="rd">Sudah masuk ke daftar fokus Latihan bebas${carried.newCards ? ` dan ${carried.newCards} kartu baru di Kartu hafalan` : " dan dek Fokus ronde di Kartu hafalan"}. Langsung main saja.</div></div>
+        <div class="focuschips">${unm.map(f => `<span class="fchip"><b>${esc(focusOf(f))}</b>${boxes(f)}</span>`).join("")}</div>
+      </div>` : `<div class="group carry ok"><div class="row col"><div class="rt">Semua kata di ronde ini sudah dikuasai</div><div class="rd">Tidak ada yang perlu dibawa ke daftar fokus.</div></div></div>`}
       <div class="glabel">Per langkah</div>
-      <div class="group">${sc.map(s => `<div class="row between"><span>${esc(s.title)}</span><span class="${s.items.length ? "num-r" : "muted"}">${s.items.length ? `${s.right}/${s.done}` : (s.id === "rel" ? "dilewati, kata di ronde ini belum punya sinonim/antonim" : "dilewati")}</span></div>`).join("")}</div>
+      <div class="group">${sc.map(s => `<div class="row between"><span>${esc(s.title)}</span><span class="${s.items.length && s.done ? "num-r" : "muted"}">${s.items.length && s.done ? `${s.right}/${s.done}` : (!s.items.length && s.id === "rel" ? "dilewati, kata di ronde ini belum punya sinonim/antonim" : "dilewati")}</span></div>`).join("")}</div>
       <div class="glabel">Kata di ronde ini</div>
       <div class="group">${round.words.map(f => `<div class="row between"><span class="fw">${esc(focusOf(f))}</span>${boxes(f)}</div>`).join("")}</div>
+      <div class="glabel">Lanjut ke mana?</div>
+      <div class="feats">
+        ${round.missed.size ? `<button type="button" class="feat" id="sumRetry"><span class="feat-ico" style="--c:var(--red)">${ICONS.round}</span><span class="feat-txt"><b>Ulangi kata yang salah</b><span>${round.missed.size} kata, dengan soal yang berbeda</span></span><span class="feat-chev">${ICONS.chev}</span></button>` : ""}
+        <button type="button" class="feat" data-sum="free"><span class="feat-ico" style="--c:var(--purple)">${ICONS.free}</span><span class="feat-txt"><b>Latihan bebas</b><span>${focusFams().length ? `Fokus ${focusFams().length} kata yang belum dikuasai` : "Soal acak dari semua kata, pilih jenis soalnya"}</span></span><span class="feat-chev">${ICONS.chev}</span></button>
+        <button type="button" class="feat" data-sum="cards"><span class="feat-ico" style="--c:var(--pink)">${ICONS.cards}</span><span class="feat-txt"><b>Kartu hafalan</b><span>${focusFams().length ? "Dek Fokus ronde sudah siap" : "Ulang arti kata dengan swipe"}</span></span><span class="feat-chev">${ICONS.chev}</span></button>
+        <button type="button" class="feat" data-sum="progress"><span class="feat-ico" style="--c:var(--green)">${ICONS.progress}</span><span class="feat-txt"><b>Lihat progres</b><span>Kata mana yang sudah dikuasai</span></span><span class="feat-chev">${ICONS.chev}</span></button>
+      </div>
       <div class="actions"><button type="button" class="btn" id="sumBack">Selesai</button><button type="button" class="btn primary" id="sumAgain">Ronde baru</button></div>`;
     $("sumBack").onclick = () => { round = null; renderRound(); };
-    $("sumAgain").onclick = startRound;
+    $("sumAgain").onclick = () => startRound();
+    if ($("sumRetry")) $("sumRetry").onclick = () => { const ids = new Set(round.missed); startRound(pool().filter(f => ids.has(f.id))); };
+    stage.querySelectorAll("[data-sum]").forEach(b => b.onclick = () => {
+      round = null;
+      if (b.dataset.sum === "free") { freeFocus = null; freeLast = null; }
+      if (b.dataset.sum === "cards" && window.VL_openFocusDeck) window.VL_openFocusDeck();
+      show(b.dataset.sum);
+    });
   }
 
   // =====================================================
   //  LATIHAN BEBAS
   // =====================================================
-  const MODES = [["mix", "Campur"], ["pos", "Jenis kata"], ["fill", "Isi kalimat"], ["affix", "Imbuhan"], ["parts", "Pecah kata"], ["rel", "Sinonim/Antonim"]];
+  const MODES = [["mix", "Campur"], ["mean", "Arti kata"], ["pos", "Jenis kata"], ["fill", "Isi kalimat"], ["affix", "Imbuhan"], ["parts", "Pecah kata"], ["rel", "Sinonim/Antonim"]];
   let freeMode = "mix", freeLast = null, freeScore = { r: 0, t: 0 };
 
   function renderFree() {
@@ -570,16 +875,31 @@
       <h2 class="vtitle">Latihan bebas</h2>
       <p class="vsub">Soal acak tanpa urutan. Cocok untuk pemanasan atau mengulang satu jenis soal saja.</p>
       ${sourceBar()}
+      ${focusBar()}
       <div class="toolbar"><div class="seg" id="modeSeg">${MODES.map(([m, l]) => `<button type="button" data-m="${m}" class="${m === freeMode ? "active" : ""}">${l}</button>`).join("")}</div><span class="muted" id="freeScore">Benar ${freeScore.r}/${freeScore.t}</span></div>
       ${freeMode === "rel" ? `<div class="note">Saran: kenali dulu katanya lewat jenis soal lain. Di tab Campur, sinonim/antonim baru muncul setelah sebuah kata dijawab benar 3 kali, supaya tidak tertukar.</div>` : ""}
       <div id="freeStage"></div>`;
     host.querySelectorAll("#modeSeg button").forEach(b => b.onclick = () => { freeMode = b.dataset.m; freeLast = null; renderFree(); });
     bindSource(() => { freeLast = null; renderFree(); });
+    host.querySelectorAll("#focusSeg button").forEach(b => b.onclick = () => { freeFocus = b.dataset.f === "on"; freeLast = null; renderFree(); });
     nextFree();
+  }
+  function focusBar() {
+    const F = focusFams();
+    if (!F.length) return "";
+    const on = freeUsesFocus();
+    return `<div class="group focusbar">
+      <div class="row between wrap">
+        <div class="minw"><div class="rt">Fokus: kata yang belum dikuasai (${F.length})</div>
+          <div class="rd">${on ? "Semua jenis soal di bawah hanya memakai kata-kata ini. Kata keluar dari daftar setelah benar 3 kali." : "Sedang memakai semua kata. Nyalakan fokus untuk melatih kata yang belum dikuasai."}</div></div>
+        <div class="seg" id="focusSeg"><button type="button" data-f="on" class="${on ? "active" : ""}">Fokus</button><button type="button" data-f="off" class="${on ? "" : "active"}">Semua kata</button></div>
+      </div>
+      <div class="focuschips">${F.map(f => `<span class="fchip"><b>${esc(focusOf(f))}</b>${boxes(f)}</span>`).join("")}</div>
+    </div>`;
   }
   function nextFree() {
     if (!pool().length) { $("freeStage").innerHTML = emptyState(); bindEmpty($("view-free"), renderFree); return; }
-    const list = candidates(freeMode);
+    const list = candidates(freeMode, freeUsesFocus() ? focusFams() : null);
     if (!list.length) {
       const why = freeMode === "rel" ? "Belum ada kata dengan sinonim/antonim di sumber kata ini."
         : freeMode === "fill" ? "Belum ada kata dengan kalimat rumpang di sumber kata ini."
@@ -591,8 +911,14 @@
     const cand = pickWeighted(list, freeLast);
     freeLast = cand.key;
     mountQuiz($("freeStage"), cand, {
-      onAnswer: ok => { freeScore.t++; if (ok) freeScore.r++; $("freeScore").textContent = `Benar ${freeScore.r}/${freeScore.t}`; },
-      onNext: nextFree
+      onAnswer: ok => {
+        freeScore.t++; if (ok) freeScore.r++; $("freeScore").textContent = `Benar ${freeScore.r}/${freeScore.t}`;
+        if (ok && cand.fam && freeUsesFocus()) {
+          const f = fams().find(x => x.id === cand.fam);
+          if (f && isMastered(f)) { saveFocus(focusFams()); const fb = document.querySelector("#freeStage .feedback"); if (fb) fb.insertAdjacentHTML("beforeend", `<div class="mastered-note">“${esc(focusOf(f))}” sudah dikuasai dan keluar dari daftar fokus.</div>`); }
+        }
+      },
+      onNext: () => { const bar = document.querySelector("#view-free .focusbar"); if (bar) bar.outerHTML = focusBar(); document.querySelectorAll("#focusSeg button").forEach(b => b.onclick = () => { freeFocus = b.dataset.f === "on"; freeLast = null; renderFree(); }); nextFree(); }
     });
   }
 
@@ -1291,8 +1617,8 @@
       ? L("Belum ada kata. Tambahkan dari bacaanmu atau pakai kata contoh.", "No words yet. Add some from your reading or use the sample words.")
       : left ? L(`${left} kata lagi menuju dikuasai`, `${left} more to master`) : L("Semua kata sudah dikuasai", "Every word is mastered");
     const feats = [
-      ["round", "var(--blue)", L("Ronde terpandu", "Guided round"), L("6 langkah: kenalan sampai sinonim", "6 steps, from intro to synonyms")],
-      ["free", "var(--purple)", L("Latihan bebas", "Free practice"), L("Soal acak, pilih jenis soalnya", "Random questions, pick a type")],
+      ["round", "var(--blue)", L("Ronde terpandu", "Guided round"), L("Kenalan sampai sinonim, pilih langkahnya", "From intro to synonyms, pick your steps")],
+      ["free", "var(--purple)", L("Latihan bebas", "Free practice"), focusFams().length ? L(`Fokus ${focusFams().length} kata yang belum dikuasai`, `Focus on ${focusFams().length} words not mastered yet`) : L("Soal acak, pilih jenis soalnya", "Random questions, pick a type")],
       ["cards", "var(--pink)", L("Kartu hafalan", "Flashcards"), cardTotal ? L(`${cc.todo + cc.new} kartu menunggu diulang`, `${cc.todo + cc.new} cards to review`) : L("Swipe kanan kalau sudah hafal", "Swipe right when you know it")],
       ["words", "var(--orange)", L("Kata saya", "My words"), L(`${custom.length} kata dari bacaanmu`, `${custom.length} words from your reading`)],
       ["progress", "var(--green)", L("Progres", "Progress"), L("Lihat kata yang sudah dikuasai", "See what you've mastered")]
@@ -1386,6 +1712,7 @@
   }
   document.querySelectorAll("[data-view]").forEach(b => b.onclick = () => show(b.dataset.view));
 
+  window.VL_bankSize = () => MODES.filter(([m]) => m !== "mix").reduce((t, [m]) => t + candidates(m).length, 0);
   updateBadge();
   show("home");
   // kartu hafalan dimuat setelah file ini; isi ulang beranda begitu semuanya siap

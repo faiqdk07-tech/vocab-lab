@@ -108,18 +108,23 @@
       return;
     }
     const c = counts();
-    const deckSize = prefs.deck === "all" ? cards.length : c.todo + c.new;
+    const focusSet = new Set(prefs.focusIds || []);
+    const focusCards = cards.filter(x => focusSet.has(x.id));
+    if (prefs.deck === "focus" && !focusCards.length) prefs.deck = "todo";
+    const deckSize = prefs.deck === "all" ? cards.length : prefs.deck === "focus" ? focusCards.length : c.todo + c.new;
     body.innerHTML = `
       <div class="stats3 cardstats">
         <div class="group stat"><div class="sv"><i class="dot d-known"></i>${c.known}</div><div class="sl">${T("hafal", "known")}</div></div>
         <div class="group stat"><div class="sv"><i class="dot d-todo"></i>${c.todo}</div><div class="sl">${T("belum hafal", "still learning")}</div></div>
         <div class="group stat"><div class="sv">${c.new}</div><div class="sl">${T("belum pernah dilihat", "not seen yet")}</div></div>
       </div>
+      ${prefs.deck === "focus" ? `<div class="note">${T(`Dek Fokus ronde berisi ${focusCards.length} kartu dari kata yang belum dikuasai di ronde terpandu. Kartunya ditambahkan otomatis.`, `The Round focus deck has ${focusCards.length} cards from words you haven't mastered in guided rounds. They were added automatically.`)}</div>` : ""}
       <div class="glabel">${T("Pengaturan", "Settings")}</div>
       <div class="group">
         <div class="row between wrap">
           <div><div class="rt">${T("Kartu", "Cards")}</div><div class="rd">${T("Kartu yang sudah hafal bisa diulang lewat pilihan Semua.", "Known cards can be reviewed with All.")}</div></div>
           <div class="seg" id="deckSeg">
+            ${focusCards.length ? `<button type="button" data-d="focus" class="${prefs.deck === "focus" ? "active" : ""}">${T("Fokus ronde", "Round focus")} (${focusCards.length})</button>` : ""}
             <button type="button" data-d="todo" class="${prefs.deck === "todo" ? "active" : ""}">${T("Belum hafal + baru", "Learning + new")} (${c.todo + c.new})</button>
             <button type="button" data-d="all" class="${prefs.deck === "all" ? "active" : ""}">${T("Semua", "All")} (${cards.length})</button>
           </div>
@@ -156,7 +161,7 @@
     body.querySelectorAll("#deckSeg button").forEach(b => b.onclick = () => { prefs.deck = b.dataset.d; savePrefs(); render(); });
     body.querySelectorAll("#dirSeg button").forEach(b => b.onclick = () => { prefs.dir = b.dataset.r; savePrefs(); render(); });
     body.querySelectorAll("#modeSegC button").forEach(b => b.onclick = () => { prefs.mode = b.dataset.m; savePrefs(); render(); });
-    $("cardStart").onclick = () => startSession(prefs.deck === "all" ? cards : cards.filter(x => status(x) !== "known"));
+    $("cardStart").onclick = () => startSession(prefs.deck === "all" ? cards : prefs.deck === "focus" ? focusCards : cards.filter(x => status(x) !== "known"));
   }
 
   // =====================================================
@@ -558,6 +563,22 @@
     render();
   }
 
+  // kata yang belum dikuasai dari ronde: tambahkan kartunya & jadikan dek "Fokus ronde"
+  window.VL_syncFocusCards = list => {
+    let added = 0;
+    const ids = [];
+    list.forEach(x => {
+      const id = "c:" + x.w.toLowerCase() + "|" + (x.pos || "");
+      ids.push(id);
+      if (!cards.some(c => c.id === id)) { cards.push({ id, w: x.w, pos: x.pos, arti: x.arti, known: null, right: 0, wrong: 0, last: 0, auto: true }); added++; }
+    });
+    prefs.focusIds = ids;
+    if (ids.length) prefs.deck = "focus"; else if (prefs.deck === "focus") prefs.deck = "todo";
+    savePrefs();
+    if (added) save();
+    return added;
+  };
+  window.VL_openFocusDeck = () => { tab = "practice"; session = null; if ((prefs.focusIds || []).length) { prefs.deck = "focus"; savePrefs(); } };
   window.VL_cardCounts = () => counts();
   window.VL_cardLog = () => log;
   window.VL_renderCards = () => { listMsg = listMsg && listMsg.keep ? listMsg : null; render(); };
