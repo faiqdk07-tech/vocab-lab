@@ -1223,9 +1223,198 @@
   }
 
   // =====================================================
+  //  MASKOT "LEXI" (beranda)
+  // =====================================================
+  const MASCOT_SVG = `
+    <svg viewBox="0 0 120 124" aria-hidden="true">
+      <defs>
+        <linearGradient id="lxBody" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--lx-1)"/><stop offset="1" stop-color="var(--lx-2)"/></linearGradient>
+      </defs>
+      <ellipse class="lx-shadow" cx="60" cy="117" rx="30" ry="4.5"/>
+      <g class="lx-body">
+        <path class="lx-antenna" d="M60 30 C 60 22, 64 18, 68 14" fill="none" stroke="var(--lx-2)" stroke-width="3" stroke-linecap="round"/>
+        <path class="lx-star" d="M69 4.5l2.1 4.3 4.7.6-3.4 3.3.8 4.7-4.2-2.2-4.2 2.2.8-4.7-3.4-3.3 4.7-.6z" fill="#ffc94d"/>
+        <rect x="16" y="28" width="88" height="80" rx="36" fill="url(#lxBody)"/>
+        <ellipse cx="60" cy="86" rx="28" ry="17" fill="var(--lx-belly)"/>
+        <g class="lx-eye" data-cx="45" data-cy="60"><ellipse cx="45" cy="60" rx="11" ry="12.5" fill="#fff"/><g class="lx-pupil"><circle cx="45" cy="61" r="5.6" fill="#2a2150"/><circle cx="47.2" cy="58.6" r="1.9" fill="#fff"/></g></g>
+        <g class="lx-eye" data-cx="75" data-cy="60"><ellipse cx="75" cy="60" rx="11" ry="12.5" fill="#fff"/><g class="lx-pupil"><circle cx="75" cy="61" r="5.6" fill="#2a2150"/><circle cx="77.2" cy="58.6" r="1.9" fill="#fff"/></g></g>
+        <ellipse cx="31" cy="75" rx="6" ry="3.6" fill="#ff8fb3" opacity=".55"/>
+        <ellipse cx="89" cy="75" rx="6" ry="3.6" fill="#ff8fb3" opacity=".55"/>
+        <path class="lx-smile" d="M53 76 Q60 82 67 76" fill="none" stroke="#2a2150" stroke-width="2.6" stroke-linecap="round"/>
+        <path class="lx-open" d="M52.5 75 Q60 76.5 67.5 75 Q66.5 85 60 85 Q53.5 85 52.5 75z" fill="#2a2150"/>
+        <g class="lx-book">
+          <ellipse cx="27" cy="94" rx="7" ry="6" fill="var(--lx-2)"/>
+          <ellipse cx="93" cy="94" rx="7" ry="6" fill="var(--lx-2)"/>
+          <path d="M60 96 L32 90 L32 108 L60 114z" fill="#fff"/>
+          <path d="M60 96 L88 90 L88 108 L60 114z" fill="#f1eeff"/>
+          <path d="M37 95.5l17 3.6M37 100.5l17 3.6M66 99.1l17-3.6M66 104.1l17-3.6" stroke="#c9c1f5" stroke-width="1.6" stroke-linecap="round"/>
+          <path d="M60 96v18" stroke="#b3a8ef" stroke-width="1.4"/>
+          <ellipse cx="33" cy="99" rx="5.5" ry="5" fill="var(--lx-1)"/>
+          <ellipse cx="87" cy="99" rx="5.5" ry="5" fill="var(--lx-1)"/>
+        </g>
+      </g>
+    </svg>`;
+  let mascotTip = -1;
+  function mascotLines() {
+    const en = isEN();
+    const tips = AFFIXES.prefix.concat(AFFIXES.root, AFFIXES.suffix).map(a => {
+      const ex = a.ex.split(",").slice(0, 2).map(x => x.trim()).join(", ");
+      return en ? `${a.form} → ${ex}` : `${a.form} artinya "${a.meaning}". Contoh: ${ex}`;
+    });
+    return shuffle(tips);
+  }
+  let mascotQueue = [];
+  function mascotSay(text) {
+    const b = $("lexiBubble");
+    if (!b) return;
+    b.classList.remove("pop");
+    void b.offsetWidth;
+    b.textContent = text;
+    b.classList.add("pop");
+  }
+  function mascotTap() {
+    const m = $("lexi");
+    if (!m) return;
+    m.classList.remove("hop");
+    void m.offsetWidth;
+    m.classList.add("hop", "happy");
+    clearTimeout(m._t);
+    m._t = setTimeout(() => m.classList.remove("happy"), 1400);
+    if (!mascotQueue.length) mascotQueue = mascotLines();
+    mascotSay(mascotQueue.pop());
+  }
+  function lookAt(x, y) {
+    const m = $("lexi");
+    if (!m || m.offsetParent === null) return;
+    const svg = m.querySelector("svg"), r = svg.getBoundingClientRect(), k = 120 / r.width;
+    svg.querySelectorAll(".lx-eye").forEach(eye => {
+      const ex = r.left + (+eye.dataset.cx) / k, ey = r.top + (+eye.dataset.cy) / k;
+      let dx = (x - ex) * k, dy = (y - ey) * k;
+      const dist = Math.hypot(dx, dy) || 1, lim = Math.min(4.2, dist / 12);
+      eye.querySelector(".lx-pupil").setAttribute("transform", `translate(${(dx / dist * lim).toFixed(2)} ${(dy / dist * lim).toFixed(2)})`);
+    });
+  }
+  window.addEventListener("pointermove", e => lookAt(e.clientX, e.clientY), { passive: true });
+  window.addEventListener("pointerdown", e => lookAt(e.clientX, e.clientY), { passive: true });
+  (function blinkLoop() {
+    const m = $("lexi");
+    if (m) { m.classList.add("blink"); setTimeout(() => m.classList.remove("blink"), 160); }
+    setTimeout(blinkLoop, 2600 + Math.random() * 2600);
+  })();
+
+  // =====================================================
+  //  BERANDA
+  // =====================================================
+  const ICONS = {
+    round: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.2"/><path d="M10 8.6v6.8l5.4-3.4z" fill="currentColor"/></svg>',
+    free: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6.5h11M9 12h11M9 17.5h11"/><circle cx="4.5" cy="6.5" r="1.2" fill="currentColor"/><circle cx="4.5" cy="12" r="1.2" fill="currentColor"/><circle cx="4.5" cy="17.5" r="1.2" fill="currentColor"/></svg>',
+    cards: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="13.5" height="13" rx="2.6"/><path d="M7.5 4h10.4A3.1 3.1 0 0 1 21 7.1V16"/></svg>',
+    words: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4H6.5A2.5 2.5 0 0 0 4 6.5v11A2.5 2.5 0 0 0 6.5 20h11a2.5 2.5 0 0 0 2.5-2.5V12"/><path d="M18.4 3.6a2 2 0 0 1 2.8 2.8L13 14.6l-3.6.8.8-3.6z"/></svg>',
+    progress: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"/><rect x="5.5" y="12" width="3" height="5.5" rx="1" fill="currentColor"/><rect x="10.5" y="8" width="3" height="9.5" rx="1" fill="currentColor"/><rect x="15.5" y="4.5" width="3" height="13" rx="1" fill="currentColor"/></svg>',
+    flame: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.6 2.5c.4 3-1.2 4.6-2.7 6.2C8.4 10.3 7 11.9 7 14.6A5 5 0 0 0 12 19.6a5 5 0 0 0 5-5c0-2.1-.9-3.6-1.8-4.7-.2 1.2-.8 2.1-1.7 2.6.4-3.6-.2-7.1-.9-10z"/></svg>',
+    star: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.2l2.6 5.5 6 .7-4.4 4.1 1.2 5.9L12 16.5l-5.4 2.9 1.2-5.9-4.4-4.1 6-.7z"/></svg>',
+    check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.2 4.2L19 7"/></svg>',
+    chev: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 5.5l6.5 6.5-6.5 6.5"/></svg>'
+  };
+  function cardStreak() {
+    const log = window.VL_cardLog ? window.VL_cardLog() : {};
+    const key = d => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+    const d = new Date();
+    if (!log[key(d)]) d.setDate(d.getDate() - 1);
+    let n = 0;
+    while (log[key(d)]) { n++; d.setDate(d.getDate() - 1); }
+    return n;
+  }
+  function renderHome() {
+    const en = isEN();
+    const L = (id, e) => en ? e : id;
+    const F = pool();
+    const mastered = F.filter(isMastered).length;
+    const cc = window.VL_cardCounts ? window.VL_cardCounts() : { known: 0, todo: 0, new: 0 };
+    const cardTotal = cc.known + cc.todo + cc.new;
+    const streak = cardStreak();
+    const h = new Date().getHours();
+    const greet = h < 11 ? L("Selamat pagi", "Good morning") : h < 15 ? L("Selamat siang", "Good afternoon") : h < 19 ? L("Selamat sore", "Good evening") : L("Selamat malam", "Good evening");
+    const segs = Math.max(F.length, 1) > 12 ? 12 : Math.max(F.length, 1);
+    const filled = F.length ? Math.round(segs * mastered / F.length) : 0;
+    const next = F.find(f => !isMastered(f));
+    const left = F.length - mastered;
+    const progressLine = !F.length
+      ? L("Belum ada kata. Tambahkan dari bacaanmu atau pakai kata contoh.", "No words yet. Add some from your reading or use the sample words.")
+      : left ? L(`${left} kata lagi menuju dikuasai`, `${left} more to master`) : L("Semua kata sudah dikuasai", "Every word is mastered");
+    const feats = [
+      ["round", "var(--blue)", L("Ronde terpandu", "Guided round"), L("6 langkah: kenalan sampai sinonim", "6 steps, from intro to synonyms")],
+      ["free", "var(--purple)", L("Latihan bebas", "Free practice"), L("Soal acak, pilih jenis soalnya", "Random questions, pick a type")],
+      ["cards", "var(--pink)", L("Kartu hafalan", "Flashcards"), cardTotal ? L(`${cc.todo + cc.new} kartu menunggu diulang`, `${cc.todo + cc.new} cards to review`) : L("Swipe kanan kalau sudah hafal", "Swipe right when you know it")],
+      ["words", "var(--orange)", L("Kata saya", "My words"), L(`${custom.length} kata dari bacaanmu`, `${custom.length} words from your reading`)],
+      ["progress", "var(--green)", L("Progres", "Progress"), L("Lihat kata yang sudah dikuasai", "See what you've mastered")]
+    ];
+    $("view-home").innerHTML = `
+      <header class="hero">
+        <div class="hero-top">
+          <div>
+            <h1 class="hero-hi">${greet}</h1>
+            <p class="hero-sub">${L("Siap mengenal kata baru hari ini?", "Ready to meet a few new words?")}</p>
+          </div>
+          <div class="lexi-wrap">
+            <div class="hero-bubble" id="lexiBubble" role="status" aria-live="polite">${mastered && mastered === F.length ? L("Keren, semua kata dikuasai!", "Every word mastered. Nice!") : streak > 1 ? L(`${streak} hari beruntun, lanjut!`, `${streak}-day streak, keep going!`) : L("Mulai dari yang kecil", "Start small")}</div>
+            <button type="button" class="lexi" id="lexi" aria-label="${L("Ketuk Lexi untuk tips imbuhan", "Tap Lexi for an affix tip")}">${MASCOT_SVG}</button>
+          </div>
+        </div>
+        <div class="tiles">
+          <button type="button" class="tile" data-go="progress">
+            <span class="tile-ico" style="--c:var(--blue)">${ICONS.star}</span>
+            <span class="tile-l">${L("Dikuasai", "Mastered")}</span>
+            <span class="tile-v">${mastered}<small>/${F.length}</small></span>
+            <span class="tile-u">${L("kata", "words")}</span>
+          </button>
+          <button type="button" class="tile" data-go="cards">
+            <span class="tile-ico" style="--c:var(--pink)">${ICONS.cards}</span>
+            <span class="tile-l">${L("Kartu hafal", "Cards known")}</span>
+            <span class="tile-v">${cc.known}<small>/${cardTotal}</small></span>
+            <span class="tile-u">${L("kartu", "cards")}</span>
+          </button>
+          <button type="button" class="tile" data-go="cards">
+            <span class="tile-ico" style="--c:var(--orange)">${ICONS.flame}</span>
+            <span class="tile-l">${L("Beruntun", "Streak")}</span>
+            <span class="tile-v">${streak}</span>
+            <span class="tile-u">${L("hari", streak === 1 ? "day" : "days")}</span>
+          </button>
+        </div>
+      </header>
+
+      <section class="today" aria-label="${L("Progres kata", "Word progress")}">
+        <div class="today-txt">
+          <b>${L("Progres kata", "Word progress")}</b>
+          <div class="today-bar">
+            <span class="today-segs">${Array.from({ length: segs }, (_, i) => `<i class="${i < filled ? "on" : ""}"></i>`).join("")}</span>
+            <span class="today-n">${mastered}/${F.length}</span>
+          </div>
+          <div class="today-pills">
+            <span>${progressLine}</span>
+            ${next ? `<span>${L("Berikutnya", "Next")}: ${esc(focusOf(next))}</span>` : ""}
+          </div>
+        </div>
+        <button type="button" class="today-go" data-go="${F.length ? "round" : "words"}">${F.length ? L("Lanjut latihan", "Keep going") : L("Tambah kata", "Add words")}</button>
+      </section>
+
+      <div class="feat-head"><h2>${L("Fitur", "Features")}</h2><button type="button" class="round-add" data-go="words" aria-label="${L("Tambah kata", "Add words")}">+</button></div>
+      <div class="feats">
+        ${feats.map(([v, c, t, d]) => `
+          <button type="button" class="feat" data-go="${v}">
+            <span class="feat-ico" style="--c:${c}">${ICONS[v]}</span>
+            <span class="feat-txt"><b>${t}</b><span>${d}</span></span>
+            <span class="feat-chev">${ICONS.chev}</span>
+          </button>`).join("")}
+      </div>`;
+    $("view-home").querySelectorAll("[data-go]").forEach(b => b.onclick = () => show(b.dataset.go));
+    $("lexi").onclick = mascotTap;
+  }
+
+  // =====================================================
   //  NAVIGASI
   // =====================================================
-  const VIEWS = ["round", "free", "cards", "words", "progress"];
+  const VIEWS = ["home", "round", "free", "cards", "words", "progress"];
   function updateBadge() {
     const F = pool();
     if (!F.length) { $("badge").textContent = "Belum ada kata"; return; }
@@ -1235,6 +1424,7 @@
     activeQuiz = null;
     VIEWS.forEach(id => { const el = $("view-" + id); el.hidden = id !== v; if (id !== v) el.innerHTML = ""; });
     document.querySelectorAll("[data-view]").forEach(b => b.classList.toggle("active", b.dataset.view === v));
+    if (v === "home") renderHome();
     if (v === "round") renderRound();
     if (v === "free") renderFree();
     if (v === "words") renderWords();
@@ -1245,5 +1435,7 @@
   document.querySelectorAll("[data-view]").forEach(b => b.onclick = () => show(b.dataset.view));
 
   updateBadge();
-  show("round");
+  show("home");
+  // kartu hafalan dimuat setelah file ini; isi ulang beranda begitu semuanya siap
+  window.addEventListener("load", () => { if (!$("view-home").hidden) renderHome(); });
 })();

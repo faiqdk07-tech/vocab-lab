@@ -558,5 +558,7 @@
     render();
   }
 
+  window.VL_cardCounts = () => counts();
+  window.VL_cardLog = () => log;
   window.VL_renderCards = () => { listMsg = listMsg && listMsg.keep ? listMsg : null; render(); };
 })();

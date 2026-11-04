@@ -14,7 +14,7 @@
   // ---------- teks persis ----------
   const EXACT = {
     // navigasi & umum
-    "Ronde terpandu": "Guided round", "Latihan bebas": "Free practice", "Kartu hafalan": "Flashcards", "Kata saya": "My words", "Progres": "Progress",
+    "Beranda": "Home", "Ronde": "Round", "Kartu": "Cards", "Ronde terpandu": "Guided round", "Latihan bebas": "Free practice", "Kartu hafalan": "Flashcards", "Kata saya": "My words", "Progres": "Progress",
     "Bahasa": "Language", "Belum ada kata": "No words yet", "Sumber kata": "Word source",
     "Benar": "Correct", "Belum tepat": "Not quite", "Jadi": "So",
     "Soal berikutnya": "Next question", "Lihat hasil": "See results", "Akhiri": "End",
