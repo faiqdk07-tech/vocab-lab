@@ -173,8 +173,15 @@
       });
     });
   }
-  window.addEventListener("pointermove", e => lookAt(e.clientX, e.clientY), { passive: true });
-  window.addEventListener("pointerdown", e => lookAt(e.clientX, e.clientY), { passive: true });
+  // diselaraskan dengan refresh layar, dan berhenti sementara saat kartu sedang digeser (supaya swipe tetap mulus)
+  let lookRaf = 0, lx = 0, ly = 0;
+  const queueLook = e => {
+    if (document.body.classList.contains("is-swiping")) return;
+    lx = e.clientX; ly = e.clientY;
+    if (!lookRaf) lookRaf = requestAnimationFrame(() => { lookRaf = 0; lookAt(lx, ly); });
+  };
+  window.addEventListener("pointermove", queueLook, { passive: true });
+  window.addEventListener("pointerdown", queueLook, { passive: true });
   (function blinkLoop() {
     visibleFigs().forEach(fig => {
       if (Math.random() < .7) { fig.classList.add("blink"); setTimeout(() => fig.classList.remove("blink"), 150); }

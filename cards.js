@@ -181,6 +181,13 @@
     const c = cur();
     if (!c) return renderSummary(host);
     const done = session.i, left = session.queue.length - session.i;
+    const entering = !!session.entering;
+    session.entering = false;
+    const nx = cards.find(x => x.id === session.queue[session.i + 1]);
+    const frontOf = k => prefs.dir === "meaning"
+      ? `<div class="cf-arti">${esc(k.arti)}</div>${k.pos ? `<span class="pos pos-${k.pos}">${k.pos}</span>` : ""}`
+      : `<div class="cf-word">${esc(k.w)}</div>${k.pos ? `<span class="pos pos-${k.pos}">${k.pos}</span>` : ""}`;
+    const nextFront = nx && nx.id !== c.id ? frontOf(nx) : "";
     const front = prefs.dir === "meaning"
       ? `<div class="cf-arti">${esc(c.arti)}</div>${c.pos ? `<span class="pos pos-${c.pos}">${c.pos}</span>` : ""}`
       : `<div class="cf-word">${esc(c.w)}</div>${c.pos ? `<span class="pos pos-${c.pos}">${c.pos}</span>` : ""}`;
@@ -193,8 +200,9 @@
         <button type="button" class="btn small ghost" id="sessEnd">${T("Akhiri", "End")}</button>
       </div>
       <div class="pbar"><span style="width:${Math.round(100 * done / session.queue.length)}%"></span></div>
-      <div class="deck">
-        <div class="swipe" id="swipe">
+      <div class="deck"><div class="deck-stack">
+        ${nextFront ? `<div class="swipe-next" id="swipeNext" aria-hidden="true"><div class="face">${nextFront}<div class="cf-hint">${T("Ingat dulu, lalu ketuk untuk membalik", "Recall first, then tap to flip")}</div></div></div>` : ""}
+        <div class="swipe${entering ? " enter" : ""}" id="swipe">
           <div class="flip ${session.flipped ? "flipped" : ""}" id="flip">
             <div class="face front">${front}<div class="cf-hint">${T("Ingat dulu, lalu ketuk untuk membalik", "Recall first, then tap to flip")}</div></div>
             <div class="face back">${back}<div class="cf-hint">${T("Sudah hafal? Swipe kanan. Belum? Swipe kiri.", "Got it? Swipe right. Not yet? Swipe left.")}</div></div>
@@ -202,7 +210,7 @@
           <div class="stamp st-yes">${T("HAFAL", "KNOW IT")}</div>
           <div class="stamp st-no">${T("BELUM", "NOT YET")}</div>
         </div>
-      </div>
+      </div></div>
       <div class="swipebtns">
         <button type="button" class="btn sb-no" id="btnNo">← ${T("Belum", "Not yet")}</button>
         <button type="button" class="btn" id="btnFlip">${T("Balik", "Flip")}</button>
@@ -228,50 +236,105 @@
     if (f) f.classList.toggle("flipped", session.flipped);
   }
 
+  // ---------- geser kartu: diselaraskan dengan refresh layar, dengan kecepatan & pegas ----------
   function bindDrag(el) {
-    let sx = 0, sy = 0, dx = 0, dy = 0, down = false, pid = null;
     const yes = el.querySelector(".st-yes"), no = el.querySelector(".st-no");
-    const paint = () => {
-      el.style.transform = `translateX(${dx}px) rotate(${dx / 18}deg)`;
-      yes.style.opacity = Math.max(0, Math.min(1, dx / 90));
-      no.style.opacity = Math.max(0, Math.min(1, -dx / 90));
-    };
+    const nextCard = document.getElementById("swipeNext");
+    let down = false, dragging = false, pid = null, sx = 0, sy = 0, dx = 0, dy = 0, tilt = 1;
+    let raf = 0, samples = [], buzzed = false;
+    const width = () => el.getBoundingClientRect().width || 320;
+    const threshold = () => Math.min(120, width() * 0.28);
+
+    function paint() {
+      raf = 0;
+      const p = Math.min(1, Math.abs(dx) / threshold());
+      el.style.transform = `translate3d(${dx}px, ${dy * 0.15}px, 0) rotate(${(dx / 16) * tilt}deg)`;
+      yes.style.opacity = dx > 0 ? p : 0;
+      no.style.opacity = dx < 0 ? p : 0;
+      if (nextCard) nextCard.style.transform = `translate3d(0, ${10 - 10 * p}px, 0) scale(${0.94 + 0.06 * p})`;
+      if (nextCard) nextCard.style.opacity = String(0.55 + 0.45 * p);
+      if (p >= 1 && !buzzed) { buzzed = true; try { navigator.vibrate && navigator.vibrate(8); } catch (_) {} }
+      if (p < 1) buzzed = false;
+    }
+    const schedule = () => { if (!raf) raf = requestAnimationFrame(paint); };
+
     el.addEventListener("pointerdown", e => {
-      if (session.busy || (e.pointerType === "mouse" && e.button !== 0)) return;
-      down = true; pid = e.pointerId; sx = e.clientX; sy = e.clientY; dx = dy = 0;
+      if (!session || session.busy || (e.pointerType === "mouse" && e.button !== 0)) return;
+      down = true; dragging = false; pid = e.pointerId;
+      sx = e.clientX; sy = e.clientY; dx = dy = 0; samples = [{ x: e.clientX, t: e.timeStamp }];
+      const r = el.getBoundingClientRect();
+      tilt = e.clientY - r.top < r.height / 2 ? 1 : -1; // dipegang di atas: miring searah; di bawah: berlawanan
       el.style.transition = "none";
+      if (nextCard) nextCard.style.transition = "none";
     });
     el.addEventListener("pointermove", e => {
       if (!down || e.pointerId !== pid) return;
-      dx = e.clientX - sx; dy = e.clientY - sy;
-      if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) {
+      const mx = e.clientX - sx, my = e.clientY - sy;
+      if (!dragging) {
+        if (Math.abs(mx) < 5 || Math.abs(mx) < Math.abs(my)) return;
+        dragging = true;
+        document.body.classList.add("is-swiping");
         try { el.setPointerCapture(pid); } catch (_) {}
-        paint();
       }
+      dx = mx; dy = my;
+      samples.push({ x: e.clientX, t: e.timeStamp });
+      while (samples.length > 2 && e.timeStamp - samples[0].t > 90) samples.shift();
+      schedule();
     });
     const end = e => {
       if (!down || (e && e.pointerId !== pid)) return;
       down = false;
-      if (Math.abs(dx) > 90) return fly(dx > 0 ? 1 : -1);
-      el.style.transition = "transform .2s ease";
-      if (Math.abs(dx) < 6 && Math.abs(dy) < 6 && e && e.type === "pointerup") flip();
-      dx = 0; paint();
+      document.body.classList.remove("is-swiping");
+      const wasDrag = dragging;
+      dragging = false;
+      if (!wasDrag) {
+        if (e && e.type === "pointerup" && Math.abs(e.clientX - sx) < 6 && Math.abs(e.clientY - sy) < 6) flip();
+        return;
+      }
+      const a = samples[0], b = samples[samples.length - 1];
+      const vx = b && a && b.t > a.t ? (b.x - a.x) / (b.t - a.t) : 0; // px per ms
+      const flick = Math.abs(vx) > 0.55 && Math.sign(vx) === Math.sign(dx) && Math.abs(dx) > 30;
+      if (Math.abs(dx) > threshold() || flick) return fly(dx > 0 ? 1 : -1, Math.abs(vx));
+      // kembali ke tengah dengan sedikit pantulan
+      el.style.transition = "transform .5s cubic-bezier(.2,.9,.25,1.2)";
+      if (nextCard) nextCard.style.transition = "transform .4s ease, opacity .4s ease";
+      yes.style.transition = no.style.transition = "opacity .25s ease";
+      dx = 0; dy = 0;
+      if (raf) { cancelAnimationFrame(raf); raf = 0; }
+      paint();
     };
     el.addEventListener("pointerup", end);
     el.addEventListener("pointercancel", end);
+    el.addEventListener("lostpointercapture", e => { if (down) end(e); });
   }
 
-  function fly(dir) {
+  function fly(dir, speed) {
     if (!session || session.busy || !cur()) return;
     session.busy = true;
-    const el = $("swipe");
-    if (el) {
-      el.style.transition = "transform .22s ease-in";
-      el.style.transform = `translateX(${dir * (window.innerWidth + 200)}px) rotate(${dir * 24}deg)`;
-      const st = el.querySelector(dir > 0 ? ".st-yes" : ".st-no");
-      if (st) st.style.opacity = 1;
+    const el = $("swipe"), nextCard = document.getElementById("swipeNext");
+    const done = () => { if (!session.busy) return; session.busy = false; session.entering = true; decide(dir > 0); };
+    if (!el) return done();
+    const cur3d = getComputedStyle(el).transform;
+    const startX = cur3d && cur3d !== "none" ? new DOMMatrix(cur3d).m41 : 0;
+    const dist = window.innerWidth * 0.75 + el.offsetWidth;
+    const remaining = Math.abs(dir * dist - startX);
+    const v = Math.max(1.4, speed || 0); // px/ms; tombol pakai kecepatan bawaan
+    const ms = Math.round(Math.min(340, Math.max(170, remaining / v)));
+    el.style.transition = `transform ${ms}ms cubic-bezier(.3,.6,.4,1)`;
+    el.style.transform = `translate3d(${dir * dist}px, 0, 0) rotate(${dir * 18}deg)`;
+    const st = el.querySelector(dir > 0 ? ".st-yes" : ".st-no");
+    if (st) { st.style.transition = "opacity .12s"; st.style.opacity = 1; }
+    if (nextCard) {
+      nextCard.style.transition = `transform ${ms}ms cubic-bezier(.2,.8,.2,1), opacity ${ms}ms ease`;
+      nextCard.style.transform = "translate3d(0,0,0) scale(1)";
+      nextCard.style.opacity = "1";
     }
-    setTimeout(() => { session.busy = false; decide(dir > 0); }, 200);
+    try { navigator.vibrate && navigator.vibrate(dir > 0 ? 12 : [6, 30, 6]); } catch (_) {}
+    let fired = false;
+    const finish = () => { if (fired) return; fired = true; done(); };
+    const onEnd = ev => { if (ev.target === el && ev.propertyName === "transform") { el.removeEventListener("transitionend", onEnd); finish(); } };
+    el.addEventListener("transitionend", onEnd);
+    setTimeout(finish, ms + 60);
   }
 
   function decide(known) {

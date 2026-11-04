@@ -612,8 +612,18 @@
   .cst-todo { color: var(--orange-t); background: rgba(255,149,0,.14); }
   .cst-new { color: var(--muted); background: var(--fill2); }
   .sesshead { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-  .deck { display: flex; justify-content: center; padding: 26px 0 14px; overflow: hidden; perspective: 1400px; }
-  .swipe { position: relative; width: 100%; max-width: 420px; height: 320px; touch-action: pan-y; user-select: none; -webkit-user-select: none; cursor: grab; }
+  .deck { display: flex; justify-content: center; padding: 26px 0 14px; overflow: hidden; }
+  .deck-stack { position: relative; width: 100%; max-width: 420px; height: 320px; }
+  .swipe { position: absolute; inset: 0; z-index: 1; touch-action: pan-y; user-select: none; -webkit-user-select: none; cursor: grab; will-change: transform; transform: translate3d(0,0,0); perspective: 1400px; -webkit-touch-callout: none; }
+  .swipe-next { position: absolute; inset: 0; z-index: 0; transform: translate3d(0,10px,0) scale(.94); opacity: .55; will-change: transform, opacity; pointer-events: none; animation: nextIn .3s ease both; }
+  .swipe-next .face { box-shadow: 0 6px 18px var(--glow), inset 0 0 0 .5px var(--line2); }
+  @keyframes nextIn { from { opacity: 0; } }
+  .swipe.enter .face.front { animation: cardSettle .22s ease-out; }
+  @keyframes cardSettle { from { box-shadow: 0 6px 18px var(--glow), inset 0 0 0 .5px var(--line2); } }
+  .stamp { will-change: opacity; }
+  .deck .face { background: var(--card-solid); }
+  .deck .face.back { background: linear-gradient(160deg, var(--card-solid) 0%, var(--card2-solid) 100%); }
+  body.is-swiping .lexi-fig .lx-body, body.is-swiping .lexi-fig .lx-shadow { animation-play-state: paused; }
   .swipe:active { cursor: grabbing; }
   .flip { position: absolute; inset: 0; transition: transform .55s var(--spring); transform-style: preserve-3d; }
   .flip.flipped { transform: rotateY(180deg); }
