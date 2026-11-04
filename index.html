@@ -614,7 +614,8 @@
   .sesshead { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
   .deck { display: flex; justify-content: center; padding: 26px 0 14px; overflow: hidden; }
   .deck-stack { position: relative; width: 100%; max-width: 420px; height: 320px; }
-  .swipe { position: absolute; inset: 0; z-index: 1; touch-action: pan-y; user-select: none; -webkit-user-select: none; cursor: grab; will-change: transform; transform: translate3d(0,0,0); perspective: 1400px; -webkit-touch-callout: none; }
+  .deck-stack > .swipe { position: absolute; inset: 0; max-width: none; height: auto; }
+  .swipe { position: relative; width: 100%; max-width: 420px; height: 320px; z-index: 1; touch-action: pan-y; user-select: none; -webkit-user-select: none; cursor: grab; will-change: transform; transform: translate3d(0,0,0); perspective: 1400px; -webkit-touch-callout: none; }
   .swipe-next { position: absolute; inset: 0; z-index: 0; transform: translate3d(0,10px,0) scale(.94); opacity: .55; will-change: transform, opacity; pointer-events: none; animation: nextIn .3s ease both; }
   .swipe-next .face { box-shadow: 0 6px 18px var(--glow), inset 0 0 0 .5px var(--line2); }
   @keyframes nextIn { from { opacity: 0; } }
@@ -872,11 +873,11 @@
   };
 })();
 </script>
-<script src="i18n.js?v=19"></script>
-<script src="lexi.js?v=19"></script>
-<script src="data.js?v=19"></script>
-<script src="app.js?v=19"></script>
-<script src="cards.js?v=19"></script>
+<script src="i18n.js?v=20"></script>
+<script src="lexi.js?v=20"></script>
+<script src="data.js?v=20"></script>
+<script src="app.js?v=20"></script>
+<script src="cards.js?v=20"></script>
 
 </body>
 </html>

@@ -305,7 +305,6 @@
     };
     el.addEventListener("pointerup", end);
     el.addEventListener("pointercancel", end);
-    el.addEventListener("lostpointercapture", e => { if (down) end(e); });
   }
 
   function fly(dir, speed) {
