@@ -482,6 +482,13 @@
     s.fam = cand.fam;
     stats[cand.key] = s;
     saveStats();
+    try {
+      const d = new Date(), tg = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+      let r = JSON.parse(localStorage.getItem('vl.ringkas') || 'null');
+      if (!r || r.tanggal !== tg) r = { app: 'vocab-lab', tanggal: tg, jawab: 0, benar: 0 };
+      r.jawab++; if (ok) r.benar++; r.diperbarui = Date.now();
+      localStorage.setItem('vl.ringkas', JSON.stringify(r));
+    } catch (e) {}
   }
 
   // =====================================================
