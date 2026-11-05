@@ -816,6 +816,9 @@
 .hubback{display:inline-flex;align-items:center;gap:4px;font-size:13px;font-weight:700;color:var(--indigo, #5856d6);background:color-mix(in srgb, var(--indigo, #5856d6) 14%, transparent);border-radius:999px;padding:6px 12px;text-decoration:none;width:fit-content;white-space:nowrap}
 .side .hubback{margin:0 8px 14px}
 @media (max-width:900px){.side .hubback{margin:0}}
+
+/* tombol tema di bawah ID/EN pada layar kecil */
+@media (max-width: 800px){ .side{min-height:96px} .langbar .lb-ctrls{flex-direction:column-reverse;align-items:flex-end;gap:8px} .langbar .theme-btn{width:34px;height:34px} }
 </style>
 </head>
 <body>
@@ -826,7 +829,6 @@
       <div class="logo">VL</div>
       <div><div class="bname">Vocab Lab</div><div class="bsub" id="badge"></div></div>
     </div>
-    <a class="hubback" href="https://faiqdk07-tech.github.io/progres-harian/#hari-ini"><svg viewBox="0 0 12 12" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.5 2.5L4 6l3.5 3.5"/></svg>Progres Harian</a>
     <nav class="nav">
       <button type="button" data-view="home"><span class="ico" style="--c:var(--indigo)" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 10.6L12 3.8l8.5 6.8V19a1.6 1.6 0 0 1-1.6 1.6H15v-6h-6v6H5.1A1.6 1.6 0 0 1 3.5 19z"/></svg></span><span>Beranda</span></button>
       <button type="button" data-view="round"><span class="ico" style="--c:var(--blue)" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.2"/><path d="M10 8.6v6.8l5.4-3.4z" fill="currentColor"/></svg></span><span class="lbl">Ronde terpandu</span><span class="lbl-s">Ronde</span></button>
@@ -885,5 +887,113 @@
 <script src="app.js?v=20"></script>
 <script src="cards.js?v=20"></script>
 
+<!-- Tombol pintasan mengambang: maskot Lumi menempel di tepi, ditekan memunculkan lingkaran pintasan app -->
+<style>
+.hf{--hf-glass1:rgba(255,255,255,.94);--hf-glass2:rgba(244,247,252,.80);--hf-edge:rgba(255,255,255,.85);--hf-sheen:rgba(255,255,255,.75);--hf-panel:#FFFFFF;--hf-ink:#18213D;--hf-muted:#8A90A2;--hf-shadow:0 18px 44px rgba(20,28,60,.22);--hf-veil:rgba(10,14,30,.14);position:fixed;z-index:60;top:0;left:0;width:0;height:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .hf{--hf-glass1:rgba(52,57,76,.90);--hf-glass2:rgba(30,34,48,.82);--hf-edge:rgba(255,255,255,.14);--hf-sheen:rgba(255,255,255,.10);--hf-panel:#1E2230;--hf-ink:#EEF1F8;--hf-muted:#9097AB;--hf-shadow:0 18px 44px rgba(0,0,0,.55);--hf-veil:rgba(0,0,0,.35)}}
+:root[data-theme="dark"] .hf{--hf-glass1:rgba(52,57,76,.90);--hf-glass2:rgba(30,34,48,.82);--hf-edge:rgba(255,255,255,.14);--hf-sheen:rgba(255,255,255,.10);--hf-panel:#1E2230;--hf-ink:#EEF1F8;--hf-muted:#9097AB;--hf-shadow:0 18px 44px rgba(0,0,0,.55);--hf-veil:rgba(0,0,0,.35)}
+/* tombol maskot */
+.hf-dot{position:fixed;top:var(--hf-y,60vh);width:62px;height:62px;margin-top:-31px;border:0;padding:0;background:transparent;cursor:pointer;touch-action:none;-webkit-tap-highlight-color:transparent;transition:right .32s cubic-bezier(.2,1.2,.4,1),left .32s cubic-bezier(.2,1.2,.4,1)}
+.hf[data-side="right"] .hf-dot{right:calc(-24px + env(safe-area-inset-right,0px))}
+.hf[data-side="left"] .hf-dot{left:calc(-24px + env(safe-area-inset-left,0px))}
+.hf.open[data-side="right"] .hf-dot,.hf[data-side="right"] .hf-dot:focus-visible{right:calc(8px + env(safe-area-inset-right,0px))}
+.hf.open[data-side="left"] .hf-dot,.hf[data-side="left"] .hf-dot:focus-visible{left:calc(8px + env(safe-area-inset-left,0px))}
+.hf-dot:focus-visible{outline:3px solid #F57F45;outline-offset:2px;border-radius:50%}
+.hf-lumi{display:block;width:100%;height:100%;overflow:visible;filter:drop-shadow(0 5px 8px rgba(120,50,10,.28));transition:transform .32s cubic-bezier(.2,1.2,.4,1)}
+.hf[data-side="right"]:not(.open):not(.drag) .hf-lumi{transform:rotate(-16deg)}
+.hf[data-side="left"]:not(.open):not(.drag) .hf-lumi{transform:rotate(16deg) scaleX(-1)}
+.hf-bob{animation:hfbob 3.2s ease-in-out infinite;transform-origin:55px 96px}
+.hf-leaf{transform-origin:56px 26px;animation:hfleaf 2.6s ease-in-out infinite}
+.hf-eyes{transform-origin:55px 58px;animation:hfblink 4.6s infinite}
+.hf.hop .hf-bob{animation:hfhop .5s cubic-bezier(.3,1.6,.5,1)}
+.hf.drag .hf-lumi{transform:scale(1.08) rotate(6deg)}
+/* raut wajah */
+.hf-happy,.hf-o,.hf-grin{display:none}
+.hf.open .hf-eyes,.hf.open .hf-smile{display:none}
+.hf.open .hf-happy,.hf.open .hf-grin{display:inline}
+.hf.drag .hf-smile{display:none}
+.hf.drag .hf-o{display:inline}
+/* lingkaran pintasan */
+.hf-veil{position:fixed;inset:0;background:var(--hf-veil)}
+.hf-veil[hidden],.hf-ring[hidden]{display:none!important}
+.hf-ring{position:fixed;top:var(--hf-ry,40vh);padding:18px 14px 14px;border-radius:30px;background:linear-gradient(180deg,var(--hf-glass1),var(--hf-glass2));-webkit-backdrop-filter:blur(22px) saturate(170%);backdrop-filter:blur(22px) saturate(170%);border:1px solid var(--hf-edge);box-shadow:var(--hf-shadow),inset 0 1px 0 var(--hf-edge);display:grid;place-items:center;overflow:hidden;transform-origin:var(--hf-ox,100%) 50%;animation:hfpop .3s cubic-bezier(.2,1.25,.4,1) both}
+.hf[data-side="right"] .hf-ring{right:calc(78px + env(safe-area-inset-right,0px))}
+.hf[data-side="left"] .hf-ring{left:calc(78px + env(safe-area-inset-left,0px))}
+.hf-grid{display:grid;grid-template-columns:repeat(2,98px);grid-auto-rows:86px;gap:8px 6px}
+.hf-app{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:6px;padding-top:4px;text-decoration:none;color:var(--hf-ink);border-radius:16px;min-width:0;transition:transform .15s}
+.hf-app:active{transform:scale(.94)}
+.hf-app:focus-visible{outline:2px solid #F57F45;outline-offset:0}
+.hf-logo{width:44px;height:44px;border-radius:13px;display:grid;place-items:center;color:#fff;font-weight:800;font-size:15px;letter-spacing:.02em;box-shadow:inset 0 -3px 0 rgba(0,0,0,.14),0 5px 12px rgba(0,0,0,.14)}
+.hf-t{display:block;width:100%;text-align:center;font-size:12px;font-weight:800;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hf-s{display:block;width:100%;text-align:center;font-size:10px;font-weight:600;color:var(--hf-muted);line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:-4px}
+.hf-app[aria-current="page"] .hf-logo{box-shadow:0 0 0 3px var(--hf-panel),0 0 0 5px #F57F45}
+.hf-app[aria-current="page"] .hf-s{color:#F57F45}
+/* kilap kaca */
+.hf-ring::before{content:"";position:absolute;left:-20%;right:-20%;top:-60%;height:95%;border-radius:0 0 50% 50%;background:linear-gradient(180deg,var(--hf-sheen),rgba(255,255,255,0));pointer-events:none}
+.hf-grid{position:relative}
+.hf-logo{position:relative;overflow:hidden}
+.hf-logo::after{content:"";position:absolute;left:0;right:0;top:0;height:52%;border-radius:13px 13px 40% 40%/13px 13px 18px 18px;background:linear-gradient(180deg,rgba(255,255,255,.55),rgba(255,255,255,.08));pointer-events:none}
+@keyframes hfpop{from{opacity:0;transform:scale(.3)}to{opacity:1;transform:none}}
+@keyframes hfbob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes hfhop{0%{transform:translateY(0) scale(1)}40%{transform:translateY(-10px) scale(1.06,.95)}100%{transform:translateY(0) scale(1)}}
+@keyframes hfleaf{0%,100%{transform:rotate(-4deg)}50%{transform:rotate(6deg)}}
+@keyframes hfblink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+@media (prefers-reduced-motion:reduce){:root:not([data-anim="on"]) .hf :is(.hf-ring,.hf-bob,.hf-leaf,.hf-eyes){animation:none}:root:not([data-anim="on"]) .hf :is(.hf-dot,.hf-lumi){transition:none}}
+</style>
+<div class="hf" id="hf" data-side="right">
+  <div class="hf-veil" id="hfVeil" hidden></div>
+  <div class="hf-ring" id="hfRing" role="menu" aria-label="Pintasan app" hidden><div class="hf-grid" id="hfGrid"></div></div>
+  <button type="button" class="hf-dot" id="hfDot" aria-label="Lumi: buka pintasan app" aria-expanded="false" aria-controls="hfRing">
+    <svg class="hf-lumi" viewBox="12 4 86 98" aria-hidden="true">
+      <defs><radialGradient id="hfLumiG" cx="40%" cy="32%" r="75%"><stop offset="0" stop-color="#FFC9A3"/><stop offset=".6" stop-color="#FF9F66"/><stop offset="1" stop-color="#F57F45"/></radialGradient></defs>
+      <g class="hf-bob">
+        <path d="M55 26c24 0 38 16 38 38 0 20-15 33-38 33S17 84 17 64c0-22 14-38 38-38z" fill="url(#hfLumiG)"/>
+        <g class="hf-leaf"><path d="M55 27c0-8 1-13 3-17" stroke="#2E9E6A" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M58 12c7-6 16-5 19-1-5 6-13 7-19 1z" fill="#4CC38A"/><path d="M56 15c-6-5-14-4-17 0 5 5 12 5 17 0z" fill="#6ED6A2"/></g>
+        <g class="hf-eyes"><ellipse cx="42" cy="58" rx="4.6" ry="5.8" fill="#2B2340"/><ellipse cx="68" cy="58" rx="4.6" ry="5.8" fill="#2B2340"/><circle cx="43.6" cy="55.8" r="1.7" fill="#fff"/><circle cx="69.6" cy="55.8" r="1.7" fill="#fff"/></g>
+        <path class="hf-happy" d="M37 60q5-7 10 0M63 60q5-7 10 0" stroke="#2B2340" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+        <ellipse cx="34" cy="68" rx="5.5" ry="3.4" fill="#FF6F8A" opacity=".5"/><ellipse cx="76" cy="68" rx="5.5" ry="3.4" fill="#FF6F8A" opacity=".5"/>
+        <path class="hf-smile" d="M49 70q6 6 12 0" stroke="#2B2340" stroke-width="3" fill="none" stroke-linecap="round"/>
+        <path class="hf-grin" d="M47 68q8 11 16 0z" fill="#2B2340"/>
+        <ellipse class="hf-o" cx="55" cy="72" rx="3.6" ry="4.4" fill="#2B2340"/>
+      </g>
+    </svg>
+  </button>
+</div>
+<script>
+(function(){
+  var BASE='https://faiqdk07-tech.github.io/';
+  var APPS=[
+    {k:'progres-harian',l:'Progres Harian',s:'Jadwal harian',t:'PH',c:'linear-gradient(135deg,#3DD07B,#1FA855)',h:'progres-harian/#hari-ini'},
+    {k:'latihan-kuantitatif',l:'Kuantitatif',s:'PU · PK · PM',t:'LK',c:'linear-gradient(135deg,#FF8E78,#EE5E4A)',h:'latihan-kuantitatif/'},
+    {k:'latihan-ppu-pbm',l:'PPU & PBM',s:'Bahasa Indonesia',t:'PB',c:'linear-gradient(135deg,#34C3B3,#1C9486)',h:'latihan-ppu-pbm/'},
+    {k:'vocab-lab',l:'Vocab Lab',s:'Bahasa Inggris',t:'VL',c:'linear-gradient(135deg,#3B8BFF,#5B5BE0)',h:'vocab-lab/'}
+  ];
+  var hf=document.getElementById('hf'), dot=document.getElementById('hfDot'), ring=document.getElementById('hfRing'), veil=document.getElementById('hfVeil'), grid=document.getElementById('hfGrid');
+  var here=(location.pathname.split('/').filter(Boolean)[0]||'').toLowerCase();
+  grid.innerHTML=APPS.map(function(a){ var cur=here===a.k; return '<a role="menuitem" class="hf-app" href="'+BASE+a.h+'"'+(cur?' aria-current="page"':'')+'><span class="hf-logo" style="background:'+a.c+'">'+a.t+'</span><span class="hf-t">'+a.l+'</span><span class="hf-s">'+(cur?'Sedang dibuka':a.s)+'</span></a>'; }).join('');
+  var KEY='hubfab.pos', pos={side:'right',y:0.62};
+  try{ var p=JSON.parse(localStorage.getItem(KEY)||'null'); if(p&&(p.side==='left'||p.side==='right')&&p.y>0&&p.y<1) pos=p; }catch(e){}
+  function clampY(px){ return Math.max(80,Math.min(window.innerHeight-140,px)); }
+  function place(){ var y=clampY(pos.y*window.innerHeight); hf.dataset.side=pos.side; hf.style.setProperty('--hf-y',y+'px');
+    hf.style.setProperty('--hf-ry',Math.max(12,Math.min(window.innerHeight-232,y-108))+'px'); hf.style.setProperty('--hf-ox',pos.side==='right'?'100%':'0%'); }
+  function hop(){ hf.classList.remove('hop'); void hf.offsetWidth; hf.classList.add('hop'); setTimeout(function(){ hf.classList.remove('hop'); },520); }
+  function open(){ if(hf.classList.contains('open')) return; hf.classList.add('open'); hop(); ring.hidden=false; veil.hidden=false; dot.setAttribute('aria-expanded','true'); dot.setAttribute('aria-label','Lumi: tutup pintasan app'); var f=grid.querySelector('.hf-app:not([aria-current])'); if(f) f.focus({preventScroll:true}); }
+  function close(){ if(!hf.classList.contains('open')) return; hf.classList.remove('open'); ring.hidden=true; veil.hidden=true; dot.setAttribute('aria-expanded','false'); dot.setAttribute('aria-label','Lumi: buka pintasan app'); }
+  place(); window.addEventListener('resize',place);
+  var sx=0, sy=0, moved=false, pid=null;
+  dot.addEventListener('pointerdown',function(e){ pid=e.pointerId; sx=e.clientX; sy=e.clientY; moved=false; try{ dot.setPointerCapture(pid); }catch(_){} });
+  dot.addEventListener('pointermove',function(e){ if(pid!==e.pointerId) return; var dx=e.clientX-sx, dy=e.clientY-sy;
+    if(!moved&&Math.abs(dx)+Math.abs(dy)<8) return; if(!moved){ moved=true; close(); hf.classList.add('drag'); }
+    dot.style.left=(e.clientX-31)+'px'; dot.style.right='auto'; hf.style.setProperty('--hf-y',clampY(e.clientY)+'px'); });
+  function reset(){ hf.classList.remove('drag'); dot.style.left=''; dot.style.right=''; }
+  dot.addEventListener('pointerup',function(e){ if(pid!==e.pointerId) return; pid=null;
+    if(moved){ reset(); pos={side:e.clientX<window.innerWidth/2?'left':'right',y:clampY(e.clientY)/window.innerHeight}; try{ localStorage.setItem(KEY,JSON.stringify(pos)); }catch(_){} place(); }
+    else { hf.classList.contains('open')?close():open(); } });
+  dot.addEventListener('pointercancel',function(e){ if(pid===e.pointerId){ pid=null; reset(); place(); } });
+  dot.addEventListener('keydown',function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); hf.classList.contains('open')?close():open(); } });
+  veil.addEventListener('click',close);
+  document.addEventListener('keydown',function(e){ if(e.key==='Escape') close(); });
+})();
+</script>
 </body>
 </html>
