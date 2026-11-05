@@ -811,6 +811,11 @@
   .alert-btns button.destr { color: var(--red); }
   @keyframes fadeIn { from { opacity: 0; } }
   @keyframes popIn { from { opacity: 0; transform: scale(1.12); } }
+
+/* tombol kembali ke Progres Harian */
+.hubback{display:inline-flex;align-items:center;gap:4px;font-size:13px;font-weight:700;color:var(--indigo, #5856d6);background:color-mix(in srgb, var(--indigo, #5856d6) 14%, transparent);border-radius:999px;padding:6px 12px;text-decoration:none;width:fit-content;white-space:nowrap}
+.side .hubback{margin:0 8px 14px}
+@media (max-width:900px){.side .hubback{margin:0}}
 </style>
 </head>
 <body>
@@ -821,6 +826,7 @@
       <div class="logo">VL</div>
       <div><div class="bname">Vocab Lab</div><div class="bsub" id="badge"></div></div>
     </div>
+    <a class="hubback" href="https://faiqdk07-tech.github.io/progres-harian/#hari-ini"><svg viewBox="0 0 12 12" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.5 2.5L4 6l3.5 3.5"/></svg>Progres Harian</a>
     <nav class="nav">
       <button type="button" data-view="home"><span class="ico" style="--c:var(--indigo)" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 10.6L12 3.8l8.5 6.8V19a1.6 1.6 0 0 1-1.6 1.6H15v-6h-6v6H5.1A1.6 1.6 0 0 1 3.5 19z"/></svg></span><span>Beranda</span></button>
       <button type="button" data-view="round"><span class="ico" style="--c:var(--blue)" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.2"/><path d="M10 8.6v6.8l5.4-3.4z" fill="currentColor"/></svg></span><span class="lbl">Ronde terpandu</span><span class="lbl-s">Ronde</span></button>
