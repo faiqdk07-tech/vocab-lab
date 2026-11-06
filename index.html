@@ -725,7 +725,7 @@
   }
 
   /* ================= layar kecil: gaya iOS ================= */
-  @media (max-width: 800px) {
+  @media (max-width: 600px) {
     .app { display: block; }
     .side {
       position: sticky; top: 0; z-index: 5; height: auto; overflow: visible;
@@ -818,10 +818,11 @@
 @media (max-width:900px){.side .hubback{margin:0}}
 
 /* tombol tema di bawah ID/EN pada layar kecil */
-@media (max-width: 800px){ .side{min-height:96px} .langbar .lb-ctrls{flex-direction:column-reverse;align-items:flex-end;gap:8px} .langbar .theme-btn{width:34px;height:34px} }
+@media (max-width: 600px){ .side{min-height:96px} .langbar .lb-ctrls{flex-direction:column-reverse;align-items:flex-end;gap:8px} .langbar .theme-btn{width:34px;height:34px} }
 
+@media (min-width: 601px) and (max-width: 900px){ .langbar>span{display:none} .langbar{justify-content:center} body{padding:16px!important} .app{height:calc(100vh - 32px)!important;height:calc(100dvh - 32px)!important;grid-template-columns:210px minmax(0,1fr)!important} main{padding:30px 24px 48px!important} }
 /* layar lebar: bingkai kartu seperti Ruang Baca, isi di-scroll di dalam bingkai */
-@media (min-width: 801px){
+@media (min-width: 601px){
   html, body { height: 100%; }
   body { box-sizing: border-box; padding-block: 24px; padding-left: max(24px, env(safe-area-inset-left, 0px)); padding-right: max(24px, env(safe-area-inset-right, 0px)); background: color-mix(in srgb, var(--mesh-base) 90%, #8a8fa8); }
   .app { max-width: 1180px; height: calc(100vh - 48px); height: calc(100dvh - 48px); min-height: 560px; margin: 0 auto; border-radius: 28px; overflow: hidden; transform: translateZ(0);
