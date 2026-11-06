@@ -819,6 +819,16 @@
 
 /* tombol tema di bawah ID/EN pada layar kecil */
 @media (max-width: 800px){ .side{min-height:96px} .langbar .lb-ctrls{flex-direction:column-reverse;align-items:flex-end;gap:8px} .langbar .theme-btn{width:34px;height:34px} }
+
+/* layar lebar: bingkai kartu seperti Ruang Baca, isi di-scroll di dalam bingkai */
+@media (min-width: 801px){
+  html, body { height: 100%; }
+  body { box-sizing: border-box; padding-block: 24px; padding-left: max(24px, env(safe-area-inset-left, 0px)); padding-right: max(24px, env(safe-area-inset-right, 0px)); background: color-mix(in srgb, var(--mesh-base) 90%, #8a8fa8); }
+  .app { max-width: 1180px; height: calc(100vh - 48px); height: calc(100dvh - 48px); min-height: 560px; margin: 0 auto; border-radius: 28px; overflow: hidden; transform: translateZ(0);
+         grid-template-columns: 240px minmax(0, 1fr); background: var(--mesh-base); box-shadow: 0 30px 60px rgba(0,0,0,.14), 0 0 0 1px var(--sep); }
+  .side { position: relative; top: auto; height: auto; margin: 12px 0 12px 12px; border-radius: 22px; border-right: 0; box-shadow: 0 0 0 1px var(--sep); }
+  main { height: 100%; overflow-y: auto; box-sizing: border-box; padding: 40px 36px 56px; }
+}
 </style>
 </head>
 <body>
