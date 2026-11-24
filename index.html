@@ -1022,5 +1022,73 @@
   document.addEventListener('keydown',function(e){ if(e.key==='Escape') close(); });
 })();
 </script>
+<!-- Tarik untuk muat ulang (24 Nov 2026): app yang dibuka dari Layar Utama iPad tidak punya tombol refresh.
+     Tarik layar ke bawah saat sudah di paling atas, lalu lepas. Tidak aktif di atas kolom isian atau saat menyeret benda. -->
+<style>
+#ptr{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 6px);z-index:2147483000;display:flex;align-items:center;gap:8px;padding:6px 12px 6px 8px;font:600 13px/1.2 system-ui,-apple-system,sans-serif;color:var(--ptr-fg,#1f2430);background:var(--ptr-bg,#fff);border:var(--ptr-bd,1px solid rgba(0,0,0,.12));border-radius:var(--ptr-r,999px);box-shadow:var(--ptr-sh,0 4px 14px rgba(0,0,0,.14));pointer-events:none;opacity:0;transform:translate(-50%,-70px);white-space:nowrap}
+#ptr svg{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+#ptr.ptr-go svg{animation:ptr-spin .8s linear infinite}
+@keyframes ptr-spin{to{transform:rotate(360deg)}}
+</style>
+<script>
+(function(){
+  var PULL = 80;   // jarak tarik (setelah diperlambat) untuk memuat ulang
+  var SKIP = 'input,textarea,select,canvas,[contenteditable],[draggable="true"],[data-no-ptr]';
+  var el, sy = 0, sx = 0, d = 0, armed = false, busy = false;
+  function box(){
+    if (el) return el;
+    el = document.createElement('div'); el.id = 'ptr'; el.setAttribute('aria-hidden', 'true');
+    el.innerHTML = '<svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v5h-5"/></svg><span></span>';
+    document.body.appendChild(el); return el;
+  }
+  function show(p){
+    var b = box(), r = Math.min(p / PULL, 1);
+    b.style.opacity = Math.min(1, p / 30);
+    b.style.transform = 'translate(-50%,' + (Math.min(p, PULL + 20) - 60) + 'px)';
+    b.querySelector('svg').style.transform = 'rotate(' + Math.round(r * 300) + 'deg)';
+    b.lastChild.textContent = r >= 1 ? 'Lepas untuk muat ulang' : 'Tarik untuk muat ulang';
+  }
+  function hide(){ if (el){ el.style.opacity = 0; el.style.transform = 'translate(-50%,-70px)'; } }
+  function atTop(t){
+    if ((window.scrollY || document.documentElement.scrollTop || 0) > 0) return false;
+    for (var n = t; n && n !== document.documentElement; n = n.parentElement){
+      if (n.nodeType !== 1) continue;
+      if (n.scrollTop > 0) return false;
+      var ta = getComputedStyle(n).touchAction;
+      if (ta && ta !== 'auto' && ta !== 'manipulation' && ta.indexOf('pan-y') < 0) return false; // area seret/gambar
+    }
+    return true;
+  }
+  addEventListener('touchstart', function(e){
+    armed = false; d = 0;
+    if (busy || e.touches.length !== 1) return;
+    var t = e.target;
+    if (t.closest && t.closest(SKIP)) return;
+    if (!atTop(t)) return;
+    armed = true; sy = e.touches[0].clientY; sx = e.touches[0].clientX;
+  }, {passive: true});
+  addEventListener('touchmove', function(e){
+    if (!armed) return;
+    if (e.defaultPrevented || e.touches.length !== 1){ armed = false; hide(); return; } // game sedang memakai gerakan ini
+    var dy = e.touches[0].clientY - sy, dx = e.touches[0].clientX - sx;
+    if (dy <= 0 || Math.abs(dx) > dy){ if (d === 0 && (dy < -4 || Math.abs(dx) > 10)) armed = false; d = 0; hide(); return; }
+    d = dy * 0.5; show(d);
+  }, {passive: true});
+  function end(){
+    if (!armed) return; armed = false;
+    if (d >= PULL){ reload(); } else hide();
+    d = 0;
+  }
+  addEventListener('touchend', end, {passive: true});
+  addEventListener('touchcancel', function(){ armed = false; d = 0; hide(); }, {passive: true});
+  function reload(){
+    busy = true; var b = box(); b.classList.add('ptr-go');
+    b.style.opacity = 1; b.style.transform = 'translate(-50%,0)'; b.lastChild.textContent = 'Memuat ulang…';
+    var pre = window.PTR_BEFORE_RELOAD, go = function(){ location.reload(); };
+    try { if (pre) { Promise.race([Promise.resolve(pre()), new Promise(function(r){ setTimeout(r, 4000); })]).then(go, go); return; } } catch (e) {}
+    setTimeout(go, 150);
+  }
+})();
+</script>
 </body>
 </html>
